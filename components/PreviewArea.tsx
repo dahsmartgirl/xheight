@@ -36,16 +36,19 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
         {/* Canvas-like Container */}
         <div className="relative flex-1 w-full bg-[#FAFAFA] rounded-[20px] overflow-hidden border border-transparent flex flex-col">
             
-            {/* Top Left Pill - Label */}
-            <div className="absolute top-[12px] left-[16px] z-20 bg-white rounded-[26px] px-[14px] py-[6px] flex items-center gap-[4px] shadow-sm">
-                <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black">Preview</span>
-                <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-[#ED0C14]">Font</span>
-            </div>
+            {/* Top Left Pill - Randomize Button */}
+            <button 
+                onClick={async () => setText(await generateSampleText())}
+                className="absolute top-[12px] left-[12px] lg:left-[16px] z-20 bg-white rounded-[26px] px-[12px] py-[6px] lg:px-[14px] flex items-center gap-[6px] shadow-sm hover:shadow-md transition-all border border-transparent active:scale-95"
+            >
+                <RotateCcw size={14} className="text-[#ED0C14]" strokeWidth={2.5} />
+                <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black hidden sm:inline">Randomize</span>
+            </button>
 
             {/* Top Right Pill - Toolbar */}
-            <div className="absolute top-[12px] right-[16px] z-20 bg-white rounded-[26px] h-[36px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm overflow-x-auto no-scrollbar max-w-[calc(100%-120px)]">
+            <div className="absolute top-[12px] right-[12px] lg:right-[16px] z-20 bg-white rounded-[26px] h-[36px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm max-w-[calc(100%-60px)] sm:max-w-none overflow-x-auto no-scrollbar touch-pan-x">
                  {/* Alignment */}
-                 <div className="flex items-center gap-1">
+                 <div className="flex items-center gap-1 shrink-0">
                     <button 
                         onClick={() => setTextAlign('left')} 
                         className={`p-1 rounded-full transition-colors ${textAlign === 'left' ? 'text-black bg-gray-100' : 'text-gray-400 hover:text-black'}`}
@@ -66,10 +69,10 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                     </button>
                  </div>
 
-                 <div className="w-[1px] h-[14px] bg-[#D9D9D9]"></div>
+                 <div className="w-[1px] h-[14px] bg-[#D9D9D9] shrink-0"></div>
 
                  {/* Sliders */}
-                 <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-3 shrink-0">
                     {/* Font Size */}
                     <div className="flex items-center gap-2" title="Font Size">
                         <Type size={14} className="text-gray-400" strokeWidth={2.5} />
@@ -79,7 +82,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                            max="150" 
                            value={fontSize} 
                            onChange={(e) => setFontSize(Number(e.target.value))}
-                           className="h-1 w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                           className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                         />
                     </div>
                     {/* Spacing */}
@@ -91,7 +94,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                            max="200" 
                            value={letterSpacing} 
                            onChange={(e) => setLetterSpacing(Number(e.target.value))}
-                           className="h-1 w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                           className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                         />
                     </div>
                     {/* Line Height */}
@@ -104,20 +107,10 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                            step="0.1"
                            value={lineHeight} 
                            onChange={(e) => setLineHeight(Number(e.target.value))}
-                           className="h-1 w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                           className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                         />
                     </div>
                  </div>
-
-                 <div className="w-[1px] h-[14px] bg-[#D9D9D9]"></div>
-
-                 <button 
-                    onClick={async () => setText(await generateSampleText())}
-                    className="text-gray-400 hover:text-black transition-colors"
-                    title="Randomize Text"
-                 >
-                    <RotateCcw size={14} strokeWidth={2.5} />
-                 </button>
             </div>
 
             {/* Content Area */}
@@ -185,15 +178,15 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                 </div>
             </div>
 
-            {/* Floating Input Pill */}
-            <div className="absolute bottom-[20px] left-4 right-4 z-20 flex justify-center">
-                 <div className="bg-white rounded-[20px] shadow-sm p-1.5 w-full max-w-2xl border border-gray-100">
-                     <textarea
+            {/* Floating Input Pill - Reverted to Pill Style */}
+            <div className="absolute bottom-[24px] left-4 right-4 z-30 flex justify-center">
+                 <div className="bg-white rounded-[30px] shadow-lg border border-[#E5E5E5] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden focus-within:ring-2 focus-within:ring-gray-100 focus-within:border-gray-300 transition-all">
+                     <input
+                        type="text"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        className="w-full h-[40px] max-h-[120px] bg-transparent border-none outline-none text-[14px] px-3 py-2 resize-none font-sans placeholder:text-gray-400 focus:ring-0"
-                        placeholder="Type something..."
-                        style={{ minHeight: '40px' }}
+                        className="w-full h-full bg-transparent border-none outline-none text-[14px] px-5 font-['Inter'] placeholder:text-gray-400 text-center"
+                        placeholder="Type to preview..."
                      />
                  </div>
             </div>
