@@ -3,13 +3,15 @@ import { CHAR_SET, FontMap, Stroke, AppTab } from './types';
 import DrawingPad from './components/DrawingPad';
 import CharacterGrid from './components/CharacterGrid';
 import PreviewArea from './components/PreviewArea';
-import { generateFont, downloadFile, centerStrokes } from './utils/svgHelpers';
-import { Pencil, Download, ChevronRight, ChevronLeft, Sparkles, Type, Smartphone, Monitor, CheckCircle2, X, Save } from 'lucide-react';
+import ZenGrid from './components/ZenGrid';
+import { generateFont, generateFontFamilyZip, downloadFile, centerStrokes } from './utils/svgHelpers';
+import { Pencil, Download, ChevronRight, ChevronLeft, Sparkles, Type, Smartphone, Monitor, CheckCircle2, X, Save, LayoutGrid, FileArchive } from 'lucide-react';
 
 const App: React.FC = () => {
   // --- STATE INITIALIZATION ---
 
   const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.CREATE);
+  const [isZenMode, setIsZenMode] = useState(false);
   
   const [selectedCharIndex, setSelectedCharIndex] = useState(() => {
     const saved = localStorage.getItem('scriptsmith_selectedIndex');
@@ -76,6 +78,18 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleZenSave = (char: string, strokes: Stroke[], width: number, height: number) => {
+      setFontMap(prev => ({
+          ...prev,
+          [char]: {
+              char: char,
+              strokes: strokes,
+              canvasWidth: width,
+              canvasHeight: height
+          }
+      }));
+  };
+
   // Centering Logic triggering on Navigation
   const performCentering = (targetChar: string) => {
       const currentData = fontMap[targetChar];
@@ -90,6 +104,38 @@ const App: React.FC = () => {
               }
           }));
       }
+  };
+
+  // Triggered when leaving Zen mode or Creation tab
+  const centerAllGlyphs = () => {
+      setFontMap(prev => {
+          const newMap = { ...prev };
+          let hasChanges = false;
+          Object.keys(newMap).forEach(char => {
+              const data = newMap[char];
+              if (data && data.strokes.length > 0) {
+                  // We assume if the strokes are not centered, we center them.
+                  // Since centerStrokes is idempotent (doesn't move if offset is small), calling it again is safe.
+                  const centered = centerStrokes(data.strokes, data.canvasWidth, data.canvasHeight, char);
+                  if (centered !== data.strokes) {
+                      newMap[char] = { ...data, strokes: centered };
+                      hasChanges = true;
+                  }
+              }
+          });
+          return hasChanges ? newMap : prev;
+      });
+  };
+
+  const handleTabChange = (tab: AppTab) => {
+      if (currentTab === AppTab.CREATE) {
+          if (isZenMode) {
+              centerAllGlyphs();
+          } else {
+              performCentering(currentChar);
+          }
+      }
+      setCurrentTab(tab);
   };
 
   const handleNext = () => {
@@ -113,14 +159,30 @@ const App: React.FC = () => {
   };
 
   const handleExport = () => {
-    // Ensure current is centered before export just in case
-    performCentering(currentChar);
+    // Final safety centering
+    centerAllGlyphs();
     
     const safeName = fontName.replace(/[^a-z0-9]/gi, '_') || 'ScriptSmith_Font';
-    
     const fontBuffer = generateFont(safeName, fontMap, letterSpacing);
     downloadFile(fontBuffer, `${safeName}.otf`, 'font/otf');
     setIsExportModalOpen(false);
+  };
+
+  const handleExportFamily = async () => {
+     centerAllGlyphs();
+     const safeName = fontName.replace(/[^a-z0-9]/gi, '_') || 'ScriptSmith_Font';
+     const zipBlob = await generateFontFamilyZip(safeName, fontMap, letterSpacing);
+     
+     const url = URL.createObjectURL(zipBlob);
+     const a = document.createElement('a');
+     a.href = url;
+     a.download = `${safeName}_Family.zip`;
+     document.body.appendChild(a);
+     a.click();
+     document.body.removeChild(a);
+     URL.revokeObjectURL(url);
+     
+     setIsExportModalOpen(false);
   };
 
   const calculateProgress = () => {
@@ -152,10 +214,7 @@ const App: React.FC = () => {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => {
-                    if(currentTab === AppTab.CREATE && tab.id !== AppTab.CREATE) performCentering(currentChar);
-                    setCurrentTab(tab.id);
-                }}
+                onClick={() => handleTabChange(tab.id)}
                 className={`
                   relative text-sm h-14 border-b-2 transition-colors duration-200
                   ${currentTab === tab.id 
@@ -199,66 +258,81 @@ const App: React.FC = () => {
       <main className="flex-1 w-full max-w-5xl mx-auto p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
         
         {currentTab === AppTab.CREATE && (
-          <div className="flex flex-col lg:flex-row gap-8 items-start h-full">
-            
-            {/* Left: Navigation/Grid */}
-            <div className="w-full lg:w-[320px] lg:sticky lg:top-24 order-2 lg:order-1 space-y-4">
-               <div className="geist-card p-4 bg-white">
-                  <div className="flex items-center justify-between mb-4 px-1">
-                     <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                       Glyphs
-                     </h3>
-                     <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                       {CHAR_SET.length}
-                     </span>
-                  </div>
-                  <CharacterGrid 
-                    selectedChar={currentChar} 
-                    onSelect={handleSelectChar}
-                    fontMap={fontMap}
-                  />
-               </div>
-               
-               <div className="text-xs text-gray-400 text-center px-4">
-                  Changes save automatically.
-               </div>
-            </div>
-
-            {/* Right: Canvas */}
-            <div className="w-full lg:flex-1 order-1 lg:order-2 flex flex-col items-center">
-              <DrawingPad 
-                char={currentChar} 
-                onSave={handleSaveStrokes}
-                existingStrokes={fontMap[currentChar]?.strokes}
-              />
-              
-              {/* Minimal Nav Controls */}
-              <div className="flex items-center gap-8 mt-8">
-                <button 
-                  onClick={handlePrev}
-                  disabled={selectedCharIndex === 0}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                
-                <div className="flex flex-col items-center min-w-[80px]">
-                  <span className="text-xl font-bold text-black">{currentChar}</span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                    {selectedCharIndex + 1} / {CHAR_SET.length}
-                  </span>
-                </div>
-
-                <button 
-                  onClick={handleNext}
-                  disabled={selectedCharIndex === CHAR_SET.length - 1}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed shadow-md transition-all"
-                >
-                   <ChevronRight size={20} />
-                </button>
+            <>
+              <div className="flex justify-end mb-6">
+                 <button 
+                   onClick={() => setIsZenMode(!isZenMode)}
+                   className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full transition-all border ${isZenMode ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                 >
+                     <LayoutGrid size={14} />
+                     {isZenMode ? 'Exit Zen Mode' : 'Enter Zen Mode'}
+                 </button>
               </div>
-            </div>
-          </div>
+
+              {isZenMode ? (
+                  <ZenGrid fontMap={fontMap} onSaveStroke={handleZenSave} />
+              ) : (
+                <div className="flex flex-col lg:flex-row gap-8 items-start h-full">
+                    {/* Left: Navigation/Grid */}
+                    <div className="w-full lg:w-[320px] lg:sticky lg:top-24 order-2 lg:order-1 space-y-4">
+                    <div className="geist-card p-4 bg-white">
+                        <div className="flex items-center justify-between mb-4 px-1">
+                            <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                            Glyphs
+                            </h3>
+                            <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                            {CHAR_SET.length}
+                            </span>
+                        </div>
+                        <CharacterGrid 
+                            selectedChar={currentChar} 
+                            onSelect={handleSelectChar}
+                            fontMap={fontMap}
+                        />
+                    </div>
+                    
+                    <div className="text-xs text-gray-400 text-center px-4">
+                        Changes save automatically.
+                    </div>
+                    </div>
+
+                    {/* Right: Canvas */}
+                    <div className="w-full lg:flex-1 order-1 lg:order-2 flex flex-col items-center">
+                    <DrawingPad 
+                        char={currentChar} 
+                        onSave={handleSaveStrokes}
+                        existingStrokes={fontMap[currentChar]?.strokes}
+                    />
+                    
+                    {/* Minimal Nav Controls */}
+                    <div className="flex items-center gap-8 mt-8">
+                        <button 
+                        onClick={handlePrev}
+                        disabled={selectedCharIndex === 0}
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                        <ChevronLeft size={20} />
+                        </button>
+                        
+                        <div className="flex flex-col items-center min-w-[80px]">
+                        <span className="text-xl font-bold text-black">{currentChar}</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                            {selectedCharIndex + 1} / {CHAR_SET.length}
+                        </span>
+                        </div>
+
+                        <button 
+                        onClick={handleNext}
+                        disabled={selectedCharIndex === CHAR_SET.length - 1}
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed shadow-md transition-all"
+                        >
+                        <ChevronRight size={20} />
+                        </button>
+                    </div>
+                    </div>
+                </div>
+              )}
+            </>
         )}
 
         {currentTab === AppTab.PREVIEW && (
@@ -374,8 +448,19 @@ const App: React.FC = () => {
                         onClick={handleExport}
                         className="geist-button w-full py-2.5 text-sm"
                       >
-                          Download File
+                          Download .OTF (Regular)
                       </button>
+
+                      <button 
+                        onClick={handleExportFamily}
+                        className="geist-button-secondary w-full py-2.5 text-sm flex items-center justify-center gap-2 group"
+                      >
+                          <FileArchive size={14} className="text-gray-500 group-hover:text-black transition-colors" />
+                          <span>Download Family .ZIP</span>
+                      </button>
+                      <p className="text-[10px] text-gray-400 text-center leading-relaxed px-2">
+                          Includes <strong>Regular</strong>, <strong>Bold</strong> (Thicker), and <strong>Italic</strong> (Slanted) variants automatically generated from your strokes.
+                      </p>
                   </div>
               </div>
           </div>

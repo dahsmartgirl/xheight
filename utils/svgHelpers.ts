@@ -1,5 +1,6 @@
 import { Stroke, FontMap, CHAR_SET, Point } from '../types';
 import opentype from 'opentype.js';
+import JSZip from 'jszip';
 
 // --- STROKE PROCESSING HELPERS ---
 
@@ -141,30 +142,51 @@ export const strokesToPath = (strokes: Stroke[], scale = 1, offsetX = 0, offsetY
 const getAngle = (p1: Point, p2: Point) => Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
 // Generate a closed path outline from a single line stroke
-const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number, thickness: number): opentype.Path => {
+// Supports thickness (for Bold) and slant (for Italic)
+const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number, thickness: number, slant: number): opentype.Path => {
     const path = new opentype.Path();
     const points = stroke.points;
     
     if (points.length === 0) return path;
 
+    // Helper to transform coordinates (Scale + Slant + Flip Y for OTF)
+    // Slant formula: x_new = x + y * slant (where y is relative to baseline?)
+    // Here input Y is canvas coords (0 at top).
+    // We convert to OTF coords: y_otf = ascender - y_canvas * scale.
+    // Then we slant based on y_otf.
+    const transform = (pt: Point, offX: number, offY: number) => {
+        const x_scaled = pt.x * scale;
+        const y_scaled = pt.y * scale; // This is distance from top
+        
+        // Add offset perpendicular to stroke angle
+        const x_offset = x_scaled + offX;
+        const y_offset = y_scaled - offY; // Subtract Y offset because canvas Y is inverted relative to math angle
+        
+        const y_otf = ascender - y_offset;
+        const x_final = x_offset + (y_otf * slant);
+        
+        return { x: x_final, y: y_otf };
+    };
+    
     // --- HANDLE DOTS ---
     if (points.length === 1 || (points.length === 2 && Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) < 2)) {
         const p = points[0];
-        const cx = p.x * scale;
-        const cy = ascender - (p.y * scale);
         const r = thickness * scale; 
         
-        path.moveTo(cx, cy - r);
-        path.lineTo(cx + r, cy);
-        path.lineTo(cx, cy + r);
-        path.lineTo(cx - r, cy);
+        // Simplified dot (diamond/circle approx)
+        const c = transform(p, 0, 0);
+        
+        path.moveTo(c.x, c.y - r);
+        path.lineTo(c.x + r, c.y);
+        path.lineTo(c.x, c.y + r);
+        path.lineTo(c.x - r, c.y);
         path.close();
         return path;
     }
 
     // --- HANDLE STROKES ---
-    const leftSide: Point[] = [];
-    const rightSide: Point[] = [];
+    const leftSide: {x: number, y: number}[] = [];
+    const rightSide: {x: number, y: number}[] = [];
     const halfWidth = (thickness * scale) / 2;
 
     for (let i = 0; i < points.length - 1; i++) {
@@ -174,37 +196,41 @@ const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number
         const offsetX = halfWidth * Math.sin(angle);
         const offsetY = halfWidth * Math.cos(angle);
 
-        leftSide.push({ x: p1.x + offsetX, y: p1.y - offsetY });
-        rightSide.push({ x: p1.x - offsetX, y: p1.y + offsetY });
+        leftSide.push(transform(p1, offsetX, offsetY));
+        rightSide.push(transform(p1, -offsetX, -offsetY));
         
         if (i === points.length - 2) {
-             leftSide.push({ x: p2.x + offsetX, y: p2.y - offsetY });
-             rightSide.push({ x: p2.x - offsetX, y: p2.y + offsetY });
+             leftSide.push(transform(p2, offsetX, offsetY));
+             rightSide.push(transform(p2, -offsetX, -offsetY));
         }
     }
 
     const startL = leftSide[0];
-    path.moveTo(startL.x * scale, ascender - (startL.y * scale));
+    path.moveTo(startL.x, startL.y);
 
     for (let i = 1; i < leftSide.length; i++) {
-        const p = leftSide[i];
-        path.lineTo(p.x * scale, ascender - (p.y * scale));
+        path.lineTo(leftSide[i].x, leftSide[i].y);
     }
 
     for (let i = rightSide.length - 1; i >= 0; i--) {
-        const p = rightSide[i];
-        path.lineTo(p.x * scale, ascender - (p.y * scale));
+        path.lineTo(rightSide[i].x, rightSide[i].y);
     }
 
     path.close();
     return path;
 };
 
-export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: number): ArrayBuffer => {
+interface FontOptions {
+    thickness?: number;
+    slant?: number; // 0 for regular, ~0.2-0.3 for italic
+    styleName?: string;
+}
+
+export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: number, options: FontOptions = {}): ArrayBuffer => {
     const unitsPerEm = 1000;
     const ascender = 800;
     const descender = -200;
-    const strokeThickness = 12;
+    const { thickness = 12, slant = 0, styleName = 'Regular' } = options;
 
     const glyphs: opentype.Glyph[] = [];
 
@@ -231,16 +257,15 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
             const smoothedStrokes = smoothStrokes(data.strokes);
 
             // 2. Align (Center) the strokes horizontally
-            // Since we rely on the App to center them on navigation, the raw data might already be centered.
-            // But doing it again here ensures consistency for export.
+            // Note: Vertical centering is assumed to be done by App before passing here.
             const alignedStrokes = alignStrokes(smoothedStrokes, data.canvasWidth);
 
             const scale = unitsPerEm / data.canvasHeight;
             const glyphPath = new opentype.Path();
 
-            // 3. Convert to Outlines
+            // 3. Convert to Outlines with Thickness and Slant
             alignedStrokes.forEach(stroke => {
-                const outline = createOutlineFromStroke(stroke, scale, ascender, strokeThickness);
+                const outline = createOutlineFromStroke(stroke, scale, ascender, thickness, slant);
                 glyphPath.extend(outline);
             });
 
@@ -274,7 +299,7 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
 
     const font = new opentype.Font({
         familyName: fontName,
-        styleName: 'Regular',
+        styleName: styleName,
         unitsPerEm,
         ascender,
         descender,
@@ -283,6 +308,38 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
 
     return font.toArrayBuffer();
 };
+
+export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, letterSpacing: number): Promise<Blob> => {
+    const zip = new JSZip();
+    const folder = zip.folder(fontName) || zip;
+
+    // 1. Regular
+    const regularBuffer = generateFont(fontName, fontMap, letterSpacing, {
+        thickness: 12,
+        slant: 0,
+        styleName: 'Regular'
+    });
+    folder.file(`${fontName}-Regular.otf`, regularBuffer);
+
+    // 2. Bold (Thicker strokes)
+    const boldBuffer = generateFont(fontName, fontMap, letterSpacing, {
+        thickness: 24, // Double thickness
+        slant: 0,
+        styleName: 'Bold'
+    });
+    folder.file(`${fontName}-Bold.otf`, boldBuffer);
+
+    // 3. Italic (Slanted)
+    const italicBuffer = generateFont(fontName, fontMap, letterSpacing, {
+        thickness: 12,
+        slant: 0.25, // ~14 degree skew
+        styleName: 'Italic'
+    });
+    folder.file(`${fontName}-Italic.otf`, italicBuffer);
+
+    return await zip.generateAsync({ type: 'blob' });
+};
+
 
 export const downloadFile = (content: ArrayBuffer | string, filename: string, mimeType: string) => {
   const blob = new Blob([content], { type: mimeType });
