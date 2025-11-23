@@ -36,81 +36,85 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
         {/* Canvas-like Container */}
         <div className="relative flex-1 w-full bg-[#FAFAFA] rounded-[20px] overflow-hidden border border-transparent flex flex-col">
             
-            {/* Top Left Pill - Randomize Button */}
-            <button 
-                onClick={async () => setText(await generateSampleText())}
-                className="absolute top-[12px] left-[12px] lg:left-[16px] z-20 bg-white rounded-[26px] px-[12px] py-[6px] lg:px-[14px] flex items-center gap-[6px] shadow-sm hover:shadow-md transition-all border border-transparent active:scale-95"
-            >
-                <RotateCcw size={14} className="text-[#ED0C14]" strokeWidth={2.5} />
-                <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black hidden sm:inline">Randomize</span>
-            </button>
+            {/* Top Controls Wrapper - Uses Flex Wrap for responsive stacking without overlap */}
+            <div className="absolute top-0 left-0 right-0 p-3 lg:p-4 z-20 flex flex-wrap justify-between gap-2 pointer-events-none">
+                
+                {/* Randomize Button */}
+                <button 
+                    onClick={async () => setText(await generateSampleText())}
+                    className="pointer-events-auto bg-white rounded-[26px] h-[36px] px-[12px] lg:px-[14px] flex items-center gap-[6px] shadow-sm hover:shadow-md transition-all border border-transparent active:scale-95 shrink-0"
+                >
+                    <RotateCcw size={14} className="text-[#ED0C14]" strokeWidth={2.5} />
+                    <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black hidden sm:inline">Randomize</span>
+                </button>
 
-            {/* Top Right Pill - Toolbar */}
-            <div className="absolute top-[12px] right-[12px] lg:right-[16px] z-20 bg-white rounded-[26px] h-[36px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm max-w-[calc(100%-60px)] sm:max-w-none overflow-x-auto no-scrollbar touch-pan-x">
-                 {/* Alignment */}
-                 <div className="flex items-center gap-1 shrink-0">
-                    <button 
-                        onClick={() => setTextAlign('left')} 
-                        className={`p-1 rounded-full transition-colors ${textAlign === 'left' ? 'text-black bg-gray-100' : 'text-gray-400 hover:text-black'}`}
-                    >
-                        <AlignLeft size={14} strokeWidth={2.5}/>
-                    </button>
-                    <button 
-                        onClick={() => setTextAlign('center')} 
-                        className={`p-1 rounded-full transition-colors ${textAlign === 'center' ? 'text-black bg-gray-100' : 'text-gray-400 hover:text-black'}`}
-                    >
-                        <AlignCenter size={14} strokeWidth={2.5}/>
-                    </button>
-                    <button 
-                        onClick={() => setTextAlign('right')} 
-                        className={`p-1 rounded-full transition-colors ${textAlign === 'right' ? 'text-black bg-gray-100' : 'text-gray-400 hover:text-black'}`}
-                    >
-                        <AlignRight size={14} strokeWidth={2.5}/>
-                    </button>
-                 </div>
+                {/* Toolbar */}
+                <div className="pointer-events-auto bg-white rounded-[26px] h-[36px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm max-w-full overflow-x-auto no-scrollbar touch-pan-x shrink-0">
+                     {/* Alignment */}
+                     <div className="flex items-center gap-1 shrink-0">
+                        <button 
+                            onClick={() => setTextAlign('left')} 
+                            className={`p-1 rounded-full transition-colors ${textAlign === 'left' ? 'text-black bg-gray-100' : 'text-gray-400 hover:text-black'}`}
+                        >
+                            <AlignLeft size={14} strokeWidth={2.5}/>
+                        </button>
+                        <button 
+                            onClick={() => setTextAlign('center')} 
+                            className={`p-1 rounded-full transition-colors ${textAlign === 'center' ? 'text-black bg-gray-100' : 'text-gray-400 hover:text-black'}`}
+                        >
+                            <AlignCenter size={14} strokeWidth={2.5}/>
+                        </button>
+                        <button 
+                            onClick={() => setTextAlign('right')} 
+                            className={`p-1 rounded-full transition-colors ${textAlign === 'right' ? 'text-black bg-gray-100' : 'text-gray-400 hover:text-black'}`}
+                        >
+                            <AlignRight size={14} strokeWidth={2.5}/>
+                        </button>
+                     </div>
 
-                 <div className="w-[1px] h-[14px] bg-[#D9D9D9] shrink-0"></div>
+                     <div className="w-[1px] h-[14px] bg-[#D9D9D9] shrink-0"></div>
 
-                 {/* Sliders */}
-                 <div className="flex items-center gap-3 shrink-0">
-                    {/* Font Size */}
-                    <div className="flex items-center gap-2" title="Font Size">
-                        <Type size={14} className="text-gray-400" strokeWidth={2.5} />
-                        <input 
-                           type="range" 
-                           min="20" 
-                           max="150" 
-                           value={fontSize} 
-                           onChange={(e) => setFontSize(Number(e.target.value))}
-                           className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
-                        />
-                    </div>
-                    {/* Spacing */}
-                    <div className="flex items-center gap-2" title="Letter Spacing">
-                        <MoveHorizontal size={14} className="text-gray-400" strokeWidth={2.5} />
-                        <input 
-                           type="range" 
-                           min="-100" 
-                           max="200" 
-                           value={letterSpacing} 
-                           onChange={(e) => setLetterSpacing(Number(e.target.value))}
-                           className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
-                        />
-                    </div>
-                    {/* Line Height */}
-                    <div className="flex items-center gap-2" title="Line Height">
-                        <MoveVertical size={14} className="text-gray-400" strokeWidth={2.5} />
-                        <input 
-                           type="range" 
-                           min="0.8" 
-                           max="3" 
-                           step="0.1"
-                           value={lineHeight} 
-                           onChange={(e) => setLineHeight(Number(e.target.value))}
-                           className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
-                        />
-                    </div>
-                 </div>
+                     {/* Sliders */}
+                     <div className="flex items-center gap-3 shrink-0">
+                        {/* Font Size */}
+                        <div className="flex items-center gap-2" title="Font Size">
+                            <Type size={14} className="text-gray-400" strokeWidth={2.5} />
+                            <input 
+                               type="range" 
+                               min="20" 
+                               max="150" 
+                               value={fontSize} 
+                               onChange={(e) => setFontSize(Number(e.target.value))}
+                               className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                            />
+                        </div>
+                        {/* Spacing */}
+                        <div className="flex items-center gap-2" title="Letter Spacing">
+                            <MoveHorizontal size={14} className="text-gray-400" strokeWidth={2.5} />
+                            <input 
+                               type="range" 
+                               min="-100" 
+                               max="200" 
+                               value={letterSpacing} 
+                               onChange={(e) => setLetterSpacing(Number(e.target.value))}
+                               className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                            />
+                        </div>
+                        {/* Line Height */}
+                        <div className="flex items-center gap-2" title="Line Height">
+                            <MoveVertical size={14} className="text-gray-400" strokeWidth={2.5} />
+                            <input 
+                               type="range" 
+                               min="0.8" 
+                               max="3" 
+                               step="0.1"
+                               value={lineHeight} 
+                               onChange={(e) => setLineHeight(Number(e.target.value))}
+                               className="h-1 w-12 sm:w-16 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                            />
+                        </div>
+                     </div>
+                </div>
             </div>
 
             {/* Content Area */}
@@ -178,9 +182,9 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                 </div>
             </div>
 
-            {/* Floating Input Pill - Reverted to Pill Style */}
+            {/* Floating Input Pill - Clean Style */}
             <div className="absolute bottom-[24px] left-4 right-4 z-30 flex justify-center">
-                 <div className="bg-white rounded-[30px] shadow-lg border border-[#E5E5E5] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden focus-within:ring-2 focus-within:ring-gray-100 focus-within:border-gray-300 transition-all">
+                 <div className="bg-white rounded-[30px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden transition-all">
                      <input
                         type="text"
                         value={text}

@@ -52,7 +52,7 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
                     <path 
                        d={strokesToPath(data.strokes, 1, 0, 0)} 
                        fill="none" 
-                       stroke="currentColor" 
+                       stroke="#000000" 
                        strokeWidth={normalizedStrokeWidth} 
                        strokeLinecap="round" 
                        strokeLinejoin="round"
