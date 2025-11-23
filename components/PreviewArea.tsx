@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { FontMap } from '../types';
 import { strokesToPath, smoothStrokes, alignStrokes } from '../utils/svgHelpers';
-import { Sparkles, Type, MoveHorizontal, RefreshCw } from 'lucide-react';
+import { Type, MoveHorizontal } from 'lucide-react';
 import { generateSampleText } from '../services/geminiService';
 
 interface PreviewAreaProps {
@@ -12,13 +12,8 @@ interface PreviewAreaProps {
 
 const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLetterSpacing }) => {
   const [text, setText] = useState("The quick brown fox jumps over the lazy dog.");
-  const [fontSize, setFontSize] = useState(60);
+  const [fontSize, setFontSize] = useState(80);
 
-  const handleGenerateStory = async () => {
-    const sample = await generateSampleText();
-    setText(sample);
-  };
-  
   // Pre-process strokes
   const processedFontMap = useMemo(() => {
     const newMap: any = {};
@@ -26,7 +21,6 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
         const data = fontMap[key];
         if (data.strokes.length > 0) {
             const smoothed = smoothStrokes(data.strokes);
-            // Strokes are already centered by App.tsx on navigation, but aligning ensures horizontal consistency
             const aligned = alignStrokes(smoothed, data.canvasWidth);
             newMap[key] = { ...data, strokes: aligned };
         } else {
@@ -37,37 +31,27 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
   }, [fontMap]);
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
-      {/* Control Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-          
-          <div className="flex flex-wrap items-center gap-6 w-full sm:w-auto px-2">
-             {/* Font Size */}
-             <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 text-gray-500">
-                   <Type size={14} />
-                   <span className="text-[10px] font-bold uppercase tracking-wider">Size</span>
-                </div>
-                <div className="flex items-center gap-2">
+    <div className="flex flex-col h-full w-full bg-[#FAFAFA] rounded-[20px] overflow-hidden relative">
+        
+        {/* Controls Overlay */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 lg:px-8 py-6 z-10 gap-4 border-b sm:border-b-0 border-gray-100">
+             <div className="flex flex-wrap items-center gap-4 lg:gap-8 w-full sm:w-auto">
+                 {/* Font Size */}
+                 <div className="flex items-center gap-3">
+                    <Type size={16} className="text-gray-400" />
                     <input 
                        type="range" 
-                       min="10" 
+                       min="20" 
                        max="200" 
                        value={fontSize} 
                        onChange={(e) => setFontSize(Number(e.target.value))}
-                       className="w-24 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                       className="w-24 lg:w-32 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                     />
-                    <span className="text-xs font-mono text-gray-700 w-[3ch] text-right">{fontSize}</span>
-                </div>
-             </div>
+                 </div>
 
-             {/* Letter Spacing */}
-             <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 text-gray-500">
-                   <MoveHorizontal size={14} />
-                   <span className="text-[10px] font-bold uppercase tracking-wider">Spacing</span>
-                </div>
-                <div className="flex items-center gap-2">
+                 {/* Letter Spacing */}
+                 <div className="flex items-center gap-3">
+                    <MoveHorizontal size={16} className="text-gray-400" />
                     <input 
                        type="range" 
                        min="-200" 
@@ -75,60 +59,33 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                        step="1"
                        value={letterSpacing} 
                        onChange={(e) => setLetterSpacing(Number(e.target.value))}
-                       className="w-24 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                       className="w-24 lg:w-32 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                     />
-                    <span className="text-xs font-mono text-gray-700 w-[4ch] text-right">{letterSpacing}</span>
-                </div>
+                 </div>
              </div>
-          </div>
 
-          <div className="flex gap-2 w-full sm:w-auto">
-                <button 
-                  onClick={handleGenerateStory}
-                  className="geist-button-secondary flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm"
-                >
-                    <RefreshCw size={14} />
-                    Sample Text
-                </button>
-           </div>
-      </div>
-      
-      {/* Editor Split View */}
-      <div className="geist-card overflow-hidden flex flex-col lg:flex-row min-h-[500px]">
-        {/* Left: Input */}
-        <div className="w-full lg:w-[40%] bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col">
-            <div className="p-4 border-b border-gray-200">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Input Text</label>
-            </div>
-            <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                className="flex-1 w-full bg-transparent p-6 outline-none resize-none text-gray-800 font-sans text-lg leading-relaxed placeholder:text-gray-300 focus:bg-white transition-colors"
-                placeholder="Type something here to preview..."
-            />
+             <button 
+               onClick={async () => setText(await generateSampleText())}
+               className="text-xs font-medium text-gray-400 hover:text-black transition-colors self-end sm:self-auto"
+             >
+                 Randomize
+             </button>
         </div>
 
-        {/* Right: Output */}
-        <div className="w-full lg:w-[60%] bg-white relative flex flex-col">
-             <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px)', backgroundSize: `100% ${fontSize * 1.2}px` }}></div>
-             
-             <div className="p-4 border-b border-gray-100 z-10 bg-white sticky top-0">
-                 <label className="text-[10px] font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles size={12} /> Rendered Result
-                 </label>
-             </div>
-             
-             <div className="p-8 flex-1 overflow-y-auto">
-                 <div className="flex flex-wrap gap-y-4 content-start">
+        {/* Input & Output */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+             {/* Text Output Area */}
+             <div className="flex-1 overflow-y-auto p-4 lg:p-8 flex flex-col items-center">
+                 <div className="flex flex-wrap gap-y-4 content-start justify-center max-w-4xl">
                     {text.split(' ').map((word, wIdx) => (
-                        <div key={wIdx} className="flex whitespace-nowrap items-end mr-4" style={{ height: fontSize, marginBottom: fontSize * 0.4 }}>
+                        <div key={wIdx} className="flex whitespace-nowrap items-end mr-4 mb-4" style={{ height: fontSize }}>
                             {word.split('').map((char, cIdx) => {
                                 const data = processedFontMap[char];
                                 
                                 // Placeholder for missing char
                                 if (!data || data.strokes.length === 0) {
                                     return (
-                                        <div key={cIdx} className="flex items-end justify-center pb-1 text-gray-200 font-serif italic border-b border-transparent" style={{ width: fontSize * 0.5, fontSize: fontSize * 0.8 }}>
+                                        <div key={cIdx} className="flex items-end justify-center pb-1 text-gray-300 font-serif italic border-b border-transparent" style={{ width: fontSize * 0.5, fontSize: fontSize * 0.8 }}>
                                             {char}
                                         </div>
                                     );
@@ -165,8 +122,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                                               fill="currentColor"
                                               stroke="currentColor" 
                                               strokeWidth="2"
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
+                                              strokeLinecap="round" 
+                                              strokeLinejoin="round" 
                                               style={{ fill: 'none' }} 
                                             />
                                         </svg>
@@ -177,8 +134,17 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                     ))}
                 </div>
             </div>
+
+            {/* Input Field */}
+            <div className="p-0 border-t border-gray-200 mx-4 lg:mx-8 mb-8">
+                <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className="w-full h-24 pt-6 outline-none text-center text-gray-500 font-sans text-lg placeholder:text-gray-300 resize-none bg-transparent"
+                    placeholder="Type to preview..."
+                />
+            </div>
         </div>
-      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Stroke, Point } from '../types';
-import { Trash2, Undo, Grid3x3 } from 'lucide-react';
+import { Trash2, Undo, Redo, Grid3x3 } from 'lucide-react';
 
 interface DrawingPadProps {
   char: string;
@@ -13,11 +13,14 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [strokes, setStrokes] = useState<Stroke[]>(existingStrokes || []);
+  const [redoStack, setRedoStack] = useState<Stroke[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
-  const [showGuides, setShowGuides] = useState(true);
+  const [showGuides, setShowGuides] = useState(false);
 
+  // Sync with prop changes (navigation)
   useEffect(() => {
     setStrokes(existingStrokes || []);
+    setRedoStack([]); // Clear redo on char change
   }, [existingStrokes, char]);
 
   const draw = useCallback(() => {
@@ -28,27 +31,18 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
 
     // Clear
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff'; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (showGuides) {
-      // Minimalist Guidelines
-      ctx.strokeStyle = '#f5f5f5'; // very light gray
+      const w = canvas.width;
+      const h = canvas.height;
+      // Simple crosshair
+      ctx.beginPath();
+      ctx.strokeStyle = '#e5e7eb';
       ctx.lineWidth = 1;
-      
-      // Crosshair center
-      ctx.beginPath();
-      ctx.moveTo(0, canvas.height / 2);
-      ctx.lineTo(canvas.width, canvas.height / 2);
-      ctx.moveTo(canvas.width / 2, 0);
-      ctx.lineTo(canvas.width / 2, canvas.height);
-      ctx.stroke();
-
-      // Baseline hint
-      ctx.beginPath();
-      ctx.strokeStyle = '#fafafa';
-      ctx.moveTo(0, canvas.height * 0.7);
-      ctx.lineTo(canvas.width, canvas.height * 0.7);
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.moveTo(0, h / 2);
+      ctx.lineTo(w, h / 2);
       ctx.stroke();
     }
 
@@ -61,8 +55,6 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
         
         context.beginPath();
         if (points.length === 1) {
-            // Draw a dot for single points
-            // Note: color must be set before calling this
             context.arc(points[0].x, points[0].y, 3, 0, Math.PI * 2);
             context.fill();
         } else {
@@ -74,8 +66,8 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
 
     // --- Active Ink Layer ---
     ctx.lineWidth = 6; 
-    ctx.strokeStyle = '#000000'; // Pure black
-    ctx.fillStyle = '#000000';
+    ctx.strokeStyle = '#171717'; // Neutral 900
+    ctx.fillStyle = '#171717';
 
     // Existing Strokes
     strokes.forEach(stroke => drawPoints(stroke.points, ctx));
@@ -92,13 +84,15 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
   useEffect(() => {
     const handleResize = () => {
         if (containerRef.current && canvasRef.current) {
+            // Set canvas resolution to match display size
             canvasRef.current.width = containerRef.current.offsetWidth;
             canvasRef.current.height = containerRef.current.offsetHeight;
             draw();
         }
     }
     window.addEventListener('resize', handleResize);
-    setTimeout(handleResize, 50); 
+    // Initial resize
+    setTimeout(handleResize, 10); 
     return () => window.removeEventListener('resize', handleResize);
   }, [draw]);
 
@@ -126,6 +120,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
     setIsDrawing(true);
     const pos = getPos(e);
     setCurrentStroke([pos]);
+    if (redoStack.length > 0) setRedoStack([]);
   };
 
   const moveDrawing = (e: React.MouseEvent | React.TouchEvent) => {
@@ -136,7 +131,6 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
   };
 
   const saveState = (newStrokes: Stroke[]) => {
-      // Just save raw strokes here. Centering happens in App.tsx on navigation.
       setStrokes(newStrokes);
       if (canvasRef.current) {
           onSave(newStrokes, canvasRef.current.width, canvasRef.current.height);
@@ -154,22 +148,56 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
     setCurrentStroke([]);
   };
 
-  const clearCanvas = () => {
-    saveState([]);
+  const handleUndo = () => {
+      if (strokes.length === 0) return;
+      const newStrokes = [...strokes];
+      const popped = newStrokes.pop();
+      if (popped) {
+          setRedoStack(prev => [...prev, [popped]]);
+          saveState(newStrokes);
+      }
   };
 
-  const undoLast = () => {
-    const remainingStrokes = strokes.slice(0, -1);
-    saveState(remainingStrokes);
+  const handleRedo = () => {
+      if (redoStack.length === 0) return;
+      const newRedoStack = [...redoStack];
+      const strokesToRestore = newRedoStack.pop();
+      if (strokesToRestore) {
+          const newStrokes = [...strokes, ...strokesToRestore];
+          setRedoStack(newRedoStack);
+          saveState(newStrokes);
+      }
+  };
+
+  const clearCanvas = () => {
+      if (strokes.length > 0) {
+        // Optional: save to history if implementing clear undo
+      }
+      saveState([]);
+      setRedoStack([]);
   };
 
   return (
-    <div className="flex flex-col w-full h-full justify-center">
-      {/* Canvas Area */}
+    <div className="w-full h-full relative flex flex-col">
+      
+      {/* Canvas Container */}
       <div 
         ref={containerRef}
-        className="relative w-full aspect-[4/3] sm:aspect-square max-w-[560px] mx-auto bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden cursor-crosshair touch-none group hover:shadow-md transition-shadow duration-300"
+        className="relative flex-1 w-full bg-[#FAFAFA] rounded-[20px] overflow-hidden cursor-crosshair touch-none border border-transparent"
       >
+        {/* Background Grid Pattern (Subtle) */}
+        {showGuides && <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>}
+
+        {/* Faint Background Char - Exact Style from Design */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+             <span 
+               className="font-['Inter'] font-normal text-[#F2F2F2] text-[150px] lg:text-[250px]" 
+               style={{ lineHeight: '1' }}
+             >
+                {char}
+             </span>
+        </div>
+
         <canvas
           ref={canvasRef}
           onMouseDown={startDrawing}
@@ -179,52 +207,50 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
           onTouchStart={startDrawing}
           onTouchMove={moveDrawing}
           onTouchEnd={stopDrawing}
-          className="w-full h-full block"
+          className="relative z-10 w-full h-full block"
         />
-        
-        {/* Background Hint Character */}
-        {strokes.length === 0 && !isDrawing && (
-             <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-                 <span className="text-[10rem] font-sans text-gray-100 opacity-60">{char}</span>
-             </div>
-        )}
 
-        {/* Floating Toolbar (Vercel Style) */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-white border border-gray-200 p-1 rounded-md shadow-sm">
-           <button 
-             onClick={undoLast} 
-             className="p-2 hover:bg-gray-100 rounded text-gray-600 transition-colors disabled:opacity-30" 
-             disabled={strokes.length === 0}
-             title="Undo"
-           >
-            <Undo size={16} />
-          </button>
-          
-          <button 
-            onClick={clearCanvas} 
-            className="p-2 hover:bg-red-50 hover:text-red-600 rounded text-gray-600 transition-colors disabled:opacity-30"
-            disabled={strokes.length === 0}
-            title="Clear"
-          >
-            <Trash2 size={16} />
-          </button>
-
-          <div className="w-px h-4 bg-gray-200 mx-1"></div>
-
-           <button 
-            onClick={() => setShowGuides(!showGuides)} 
-            className={`p-2 rounded transition-colors ${showGuides ? 'bg-gray-100 text-black' : 'hover:bg-gray-50 text-gray-400'}`}
-            title="Toggle Guides"
-          >
-            <Grid3x3 size={16} />
-          </button>
+        {/* Draw "C" Pill */}
+        <div className="absolute top-[17px] left-[21px] z-20 bg-white rounded-[26px] px-[18px] py-[8px] flex items-center gap-[4px] shadow-sm">
+            <span className="text-[14px] lg:text-[16px] font-['Inter'] font-medium text-black">Draw</span>
+            <span className="text-[14px] lg:text-[16px] font-['Inter'] font-medium text-[#ED0C14]">“{char}”</span>
         </div>
-      </div>
 
-      <div className="mt-4 text-center">
-        <p className="text-sm text-gray-400 font-medium">
-          Drawing <span className="text-black font-semibold">"{char}"</span>
-        </p>
+        {/* Floating Toolbar Pill */}
+        <div className="absolute top-[17px] right-[21px] z-20 bg-white rounded-[26px] h-[38px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm">
+           <button 
+             onClick={handleUndo} 
+             disabled={strokes.length === 0}
+             className="text-gray-400 hover:text-black transition-colors disabled:opacity-30"
+           >
+             <Undo size={18} strokeWidth={2} />
+           </button>
+           
+           <button 
+             onClick={handleRedo} 
+             disabled={redoStack.length === 0}
+             className="text-gray-400 hover:text-black transition-colors disabled:opacity-30"
+           >
+             <Redo size={18} strokeWidth={2} />
+           </button>
+
+           <div className="w-[1px] h-[17px] bg-[#D9D9D9]"></div>
+
+           <button 
+             onClick={clearCanvas} 
+             disabled={strokes.length === 0}
+             className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-30"
+           >
+             <Trash2 size={18} strokeWidth={2} />
+           </button>
+           
+           <button 
+             onClick={() => setShowGuides(!showGuides)} 
+             className={`${showGuides ? 'text-black' : 'text-gray-400'} hover:text-black transition-colors`}
+           >
+             <Grid3x3 size={18} strokeWidth={2} />
+           </button>
+        </div>
       </div>
     </div>
   );

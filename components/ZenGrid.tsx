@@ -115,7 +115,7 @@ const ZenCell: React.FC<{
     };
 
     return (
-        <div className="relative group border border-gray-100 rounded hover:border-gray-300 hover:shadow-sm transition-all bg-white">
+        <div className="relative group border border-gray-100 rounded hover:border-gray-300 hover:shadow-sm transition-all bg-white overflow-hidden">
              <span className="absolute top-1 left-2 text-[10px] font-bold text-gray-300 pointer-events-none group-hover:text-black/20">{char}</span>
              <canvas 
                 ref={canvasRef}
@@ -145,7 +145,7 @@ const ZenGrid: React.FC<ZenGridProps> = ({ fontMap, onSaveStroke }) => {
                  </p>
              </div>
              
-             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3 pb-20">
+             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 sm:gap-3 pb-20">
                  {CHAR_SET.map(char => (
                      <div key={char} className="aspect-square">
                          <ZenCell 

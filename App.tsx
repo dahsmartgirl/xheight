@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { CHAR_SET, FontMap, Stroke, AppTab } from './types';
+import { CHAR_SET, FontMap, Stroke } from './types';
 import DrawingPad from './components/DrawingPad';
 import CharacterGrid from './components/CharacterGrid';
 import PreviewArea from './components/PreviewArea';
 import ZenGrid from './components/ZenGrid';
 import { generateFont, generateFontFamilyZip, downloadFile, centerStrokes } from './utils/svgHelpers';
-import { Pencil, Download, ChevronRight, ChevronLeft, Sparkles, Type, Smartphone, Monitor, CheckCircle2, X, Save, LayoutGrid, FileArchive } from 'lucide-react';
+import { Download, X, CheckCircle2, FileArchive, LayoutGrid, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+
+type ViewMode = 'CANVAS' | 'PREVIEW';
 
 const App: React.FC = () => {
-  // --- STATE INITIALIZATION ---
-
-  const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.CREATE);
+  // --- STATE ---
+  const [viewMode, setViewMode] = useState<ViewMode>('CANVAS');
   const [isZenMode, setIsZenMode] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar toggle
   
   const [selectedCharIndex, setSelectedCharIndex] = useState(() => {
     const saved = localStorage.getItem('scriptsmith_selectedIndex');
@@ -33,21 +35,16 @@ const App: React.FC = () => {
   });
 
   const [fontName, setFontName] = useState(() => {
-    return localStorage.getItem('scriptsmith_fontName') || "MyHandwriting";
+    return localStorage.getItem('scriptsmith_fontName') || "myhandwriting";
   });
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [isSavedIndicatorVisible, setIsSavedIndicatorVisible] = useState(false);
 
   const currentChar = CHAR_SET[selectedCharIndex];
 
-  // --- AUTO-SAVE EFFECTS ---
-
+  // --- PERSISTENCE ---
   useEffect(() => {
     localStorage.setItem('scriptsmith_fontMap', JSON.stringify(fontMap));
-    setIsSavedIndicatorVisible(true);
-    const timer = setTimeout(() => setIsSavedIndicatorVisible(false), 2000);
-    return () => clearTimeout(timer);
   }, [fontMap]);
 
   useEffect(() => {
@@ -62,11 +59,9 @@ const App: React.FC = () => {
     localStorage.setItem('scriptsmith_fontName', fontName);
   }, [fontName]);
 
-
-  // --- HANDLERS ---
+  // --- ACTIONS ---
 
   const handleSaveStrokes = (strokes: Stroke[], width: number, height: number) => {
-    // Save strokes immediately as drawn (uncentered)
     setFontMap(prev => ({
       ...prev,
       [currentChar]: {
@@ -90,11 +85,9 @@ const App: React.FC = () => {
       }));
   };
 
-  // Centering Logic triggering on Navigation
   const performCentering = (targetChar: string) => {
       const currentData = fontMap[targetChar];
       if (currentData && currentData.strokes.length > 0) {
-          // Pass the character to centerStrokes to handle descenders (g, j, p, q, y) smartly
           const centered = centerStrokes(currentData.strokes, currentData.canvasWidth, currentData.canvasHeight, targetChar);
           setFontMap(prev => ({
               ...prev,
@@ -106,7 +99,6 @@ const App: React.FC = () => {
       }
   };
 
-  // Triggered when leaving Zen mode or Creation tab
   const centerAllGlyphs = () => {
       setFontMap(prev => {
           const newMap = { ...prev };
@@ -114,8 +106,6 @@ const App: React.FC = () => {
           Object.keys(newMap).forEach(char => {
               const data = newMap[char];
               if (data && data.strokes.length > 0) {
-                  // We assume if the strokes are not centered, we center them.
-                  // Since centerStrokes is idempotent (doesn't move if offset is small), calling it again is safe.
                   const centered = centerStrokes(data.strokes, data.canvasWidth, data.canvasHeight, char);
                   if (centered !== data.strokes) {
                       newMap[char] = { ...data, strokes: centered };
@@ -127,50 +117,41 @@ const App: React.FC = () => {
       });
   };
 
-  const handleTabChange = (tab: AppTab) => {
-      if (currentTab === AppTab.CREATE) {
-          if (isZenMode) {
-              centerAllGlyphs();
-          } else {
-              performCentering(currentChar);
-          }
-      }
-      setCurrentTab(tab);
-  };
-
-  const handleNext = () => {
-    performCentering(currentChar); // Center existing char before leaving
-    if (selectedCharIndex < CHAR_SET.length - 1) {
-      setSelectedCharIndex(prev => prev + 1);
-    }
-  };
-
-  const handlePrev = () => {
-    performCentering(currentChar); // Center existing char before leaving
-    if (selectedCharIndex > 0) {
-      setSelectedCharIndex(prev => prev - 1);
-    }
-  };
-
   const handleSelectChar = (char: string) => {
-      performCentering(currentChar); // Center existing char before leaving
+      performCentering(currentChar); 
       const index = CHAR_SET.indexOf(char);
-      if (index !== -1) setSelectedCharIndex(index);
+      if (index !== -1) {
+          setSelectedCharIndex(index);
+          // On mobile, close sidebar after selection
+          if (window.innerWidth < 1024) setIsSidebarOpen(false);
+      }
+  };
+
+  const handleNextChar = () => {
+    if (selectedCharIndex < CHAR_SET.length - 1) {
+        performCentering(currentChar);
+        setSelectedCharIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevChar = () => {
+    if (selectedCharIndex > 0) {
+        performCentering(currentChar);
+        setSelectedCharIndex(prev => prev - 1);
+    }
   };
 
   const handleExport = () => {
-    // Final safety centering
     centerAllGlyphs();
-    
-    const safeName = fontName.replace(/[^a-z0-9]/gi, '_') || 'ScriptSmith_Font';
+    const safeName = fontName.replace(/[^a-z0-9]/gi, '_') || 'xheight_Font';
     const fontBuffer = generateFont(safeName, fontMap, letterSpacing);
-    downloadFile(fontBuffer, `${safeName}.otf`, 'font/otf');
+    downloadFile(fontBuffer, `${safeName}.ttf`, 'font/ttf');
     setIsExportModalOpen(false);
   };
 
   const handleExportFamily = async () => {
      centerAllGlyphs();
-     const safeName = fontName.replace(/[^a-z0-9]/gi, '_') || 'ScriptSmith_Font';
+     const safeName = fontName.replace(/[^a-z0-9]/gi, '_') || 'xheight_Font';
      const zipBlob = await generateFontFamilyZip(safeName, fontMap, letterSpacing);
      
      const url = URL.createObjectURL(zipBlob);
@@ -181,242 +162,224 @@ const App: React.FC = () => {
      a.click();
      document.body.removeChild(a);
      URL.revokeObjectURL(url);
-     
      setIsExportModalOpen(false);
   };
 
-  const calculateProgress = () => {
-    const completed = CHAR_SET.filter(c => fontMap[c] && fontMap[c].strokes.length > 0).length;
-    return Math.round((completed / CHAR_SET.length) * 100);
-  };
-
-  const progress = calculateProgress();
+  const completedCount = CHAR_SET.filter(c => fontMap[c] && fontMap[c].strokes.length > 0).length;
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-gray-900 bg-gray-50/50">
+    <div className="w-full h-[100dvh] bg-white flex flex-col font-['Inter'] overflow-hidden">
+      
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-5xl mx-auto h-14 flex items-center justify-between px-4 sm:px-6">
-          
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-black rounded flex items-center justify-center text-white">
-              <Pencil size={14} strokeWidth={2.5} />
+      <header className="h-[67px] shrink-0 border-b border-thin border-[#D9D9D9] flex items-center justify-between px-4 lg:px-[47px] bg-white z-50 relative">
+        <div className="flex items-center gap-4">
+             {/* Mobile Sidebar Toggle */}
+            <button className="lg:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                <Menu className="text-black" />
+            </button>
+            
+            {/* Brand */}
+            <div className="flex items-center gap-1.5 select-none">
+                <span className="text-[20px] font-bold tracking-tight text-[#ED0C14]">x</span>
+                <span className="text-[20px] font-bold tracking-tight text-[#171717]">-height</span>
             </div>
-            <span className="font-bold text-sm tracking-tight text-gray-900">ScriptSmith</span>
-          </div>
-
-          {/* Vercel-style Tab Navigation */}
-          <div className="flex gap-6">
-            {[
-              { id: AppTab.CREATE, label: 'Create' },
-              { id: AppTab.PREVIEW, label: 'Preview' },
-              { id: AppTab.EXPORT, label: 'Export' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`
-                  relative text-sm h-14 border-b-2 transition-colors duration-200
-                  ${currentTab === tab.id 
-                    ? 'border-black text-black font-medium' 
-                    : 'border-transparent text-gray-500 hover:text-gray-800'}
-                `}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-4">
-             {/* Auto Save Indicator */}
-             <div className={`hidden sm:flex items-center gap-1.5 text-[10px] font-medium text-gray-400 transition-opacity duration-300 ${isSavedIndicatorVisible ? 'opacity-100' : 'opacity-0'}`}>
-                <Save size={12} /> Saved
-             </div>
-
-             {/* Minimal Progress Circle */}
-             <div className="flex items-center gap-2">
-                 <div className="w-5 h-5 relative">
-                    <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                        <path className="text-gray-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
-                        <path 
-                          className="text-black transition-all duration-500" 
-                          strokeDasharray={`${progress}, 100`} 
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="4"
-                        />
-                    </svg>
-                 </div>
-                 <span className="text-xs font-medium text-gray-600">{progress}%</span>
-             </div>
-          </div>
         </div>
+
+        {/* Download Button */}
+        <button 
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-[7px] bg-[#14110F] text-white px-4 py-2 lg:px-[22px] lg:py-[12px] rounded-[30px] transition-colors hover:bg-black"
+        >
+            <div className="w-[16px] h-[16px] relative flex items-center justify-center">
+                 <Download size={14} strokeWidth={2.5} />
+            </div>
+            <span className="text-[14px] lg:text-[16px] font-medium hidden sm:inline">Download font</span>
+            <span className="text-[14px] font-medium sm:hidden">Export</span>
+        </button>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-5xl mx-auto p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Main Layout Grid */}
+      <div className="flex-1 flex overflow-hidden relative">
         
-        {currentTab === AppTab.CREATE && (
-            <>
-              <div className="flex justify-end mb-6">
-                 <button 
-                   onClick={() => setIsZenMode(!isZenMode)}
-                   className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-full transition-all border ${isZenMode ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
-                 >
-                     <LayoutGrid size={14} />
-                     {isZenMode ? 'Exit Zen Mode' : 'Enter Zen Mode'}
-                 </button>
-              </div>
+        {/* Sidebar */}
+        <aside className={`
+            fixed inset-y-0 left-0 z-40 w-[300px] bg-white transform transition-transform duration-300 ease-in-out border-r border-[#D9D9D9] flex flex-col gap-[25px] p-6
+            lg:relative lg:translate-x-0 lg:w-[370px] lg:p-[32px]
+            ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:shadow-none'}
+        `}>
+            {/* Close Button Mobile */}
+            <button className="absolute top-4 right-4 lg:hidden" onClick={() => setIsSidebarOpen(false)}>
+                <X className="text-gray-500" />
+            </button>
 
-              {isZenMode ? (
-                  <ZenGrid fontMap={fontMap} onSaveStroke={handleZenSave} />
-              ) : (
-                <div className="flex flex-col lg:flex-row gap-8 items-start h-full">
-                    {/* Left: Navigation/Grid */}
-                    <div className="w-full lg:w-[320px] lg:sticky lg:top-24 order-2 lg:order-1 space-y-4">
-                    <div className="geist-card p-4 bg-white">
-                        <div className="flex items-center justify-between mb-4 px-1">
-                            <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                            Glyphs
-                            </h3>
-                            <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {CHAR_SET.length}
-                            </span>
-                        </div>
-                        <CharacterGrid 
-                            selectedChar={currentChar} 
-                            onSelect={handleSelectChar}
-                            fontMap={fontMap}
-                        />
-                    </div>
-                    
-                    <div className="text-xs text-gray-400 text-center px-4">
-                        Changes save automatically.
-                    </div>
-                    </div>
-
-                    {/* Right: Canvas */}
-                    <div className="w-full lg:flex-1 order-1 lg:order-2 flex flex-col items-center">
-                    <DrawingPad 
-                        char={currentChar} 
-                        onSave={handleSaveStrokes}
-                        existingStrokes={fontMap[currentChar]?.strokes}
-                    />
-                    
-                    {/* Minimal Nav Controls */}
-                    <div className="flex items-center gap-8 mt-8">
-                        <button 
-                        onClick={handlePrev}
-                        disabled={selectedCharIndex === 0}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:border-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                        >
-                        <ChevronLeft size={20} />
-                        </button>
-                        
-                        <div className="flex flex-col items-center min-w-[80px]">
-                        <span className="text-xl font-bold text-black">{currentChar}</span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                            {selectedCharIndex + 1} / {CHAR_SET.length}
-                        </span>
-                        </div>
-
-                        <button 
-                        onClick={handleNext}
-                        disabled={selectedCharIndex === CHAR_SET.length - 1}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed shadow-md transition-all"
-                        >
-                        <ChevronRight size={20} />
-                        </button>
-                    </div>
-                    </div>
-                </div>
-              )}
-            </>
-        )}
-
-        {currentTab === AppTab.PREVIEW && (
-          <PreviewArea 
-            fontMap={fontMap} 
-            letterSpacing={letterSpacing} 
-            setLetterSpacing={setLetterSpacing}
-          />
-        )}
-
-        {currentTab === AppTab.EXPORT && (
-          <div className="max-w-2xl mx-auto space-y-8 pt-4">
-            {/* Hero Export Card */}
-            <div className="geist-card p-10 text-center relative overflow-hidden">
-                <div className="relative z-10">
-                    <div className="w-16 h-16 bg-gray-50 border border-gray-100 text-black rounded-2xl flex items-center justify-center mx-auto mb-6">
-                        <Sparkles size={24} />
-                    </div>
-                    
-                    <h2 className="text-2xl font-bold text-black mb-3">Ready to Ship</h2>
-                    <p className="text-gray-500 mb-8 text-sm leading-relaxed max-w-sm mx-auto">
-                        Compile your glyphs into a standard OpenType font file. Compatible with all major design software.
-                    </p>
-                    
-                    <button 
-                    onClick={() => setIsExportModalOpen(true)}
-                    className="geist-button px-8 py-3 text-sm flex items-center justify-center gap-2 mx-auto"
-                    >
-                        <Download size={16} /> 
-                        <span>Download .OTF</span>
-                    </button>
+            {/* Font Name Section */}
+            <div className="flex flex-col gap-[10px] w-full mt-8 lg:mt-0">
+                <label className="text-[16px] font-medium text-black leading-[22.4px]">
+                    Font name
+                </label>
+                <div className="h-[50px] w-full px-[20px] lg:px-[29px] py-[13px] rounded-[30px] outline outline-[0.5px] outline-[#D9D9D9] flex items-center">
+                     <input 
+                        type="text" 
+                        value={fontName}
+                        onChange={(e) => setFontName(e.target.value)}
+                        className="w-full h-full bg-transparent border-none outline-none text-[16px] font-normal text-[#7B7B7B] placeholder:text-[#7B7B7B]"
+                        placeholder="myhandwriting"
+                     />
                 </div>
             </div>
 
-            <div className="space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 px-1">Documentation</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Desktop */}
-                <div className="geist-card p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-4">
-                        <Monitor size={20} className="text-gray-900"/>
-                        <h4 className="font-bold text-sm text-gray-900">Desktop</h4>
-                    </div>
-                    <ul className="space-y-3">
-                        <li className="flex gap-2 text-xs text-gray-600 items-start">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1 shrink-0"></span>
-                            <span>Open the <strong>.otf</strong> file.</span>
-                        </li>
-                         <li className="flex gap-2 text-xs text-gray-600 items-start">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1 shrink-0"></span>
-                            <span>Click <strong>Install</strong>.</span>
-                        </li>
-                    </ul>
-                </div>
-
-                {/* Mobile */}
-                <div className="geist-card p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-4">
-                         <Smartphone size={20} className="text-gray-900"/>
-                         <h4 className="font-bold text-sm text-gray-900">Mobile</h4>
-                    </div>
-                     <ul className="space-y-3">
-                        <li className="flex gap-2 text-xs text-gray-600 items-start">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1 shrink-0"></span>
-                            <span><strong>iOS:</strong> Use <em>iFont</em> to install.</span>
-                        </li>
-                         <li className="flex gap-2 text-xs text-gray-600 items-start">
-                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300 mt-1 shrink-0"></span>
-                            <span><strong>Android:</strong> Use <em>zFont 3</em>.</span>
-                        </li>
-                    </ul>
-                </div>
-                </div>
+            {/* Glyphs Section */}
+            <div className="flex flex-col gap-[21px] flex-1 overflow-hidden">
+                 <div className="flex items-center justify-between pr-2">
+                      <span className="text-[16px] font-medium text-black leading-[22.4px]">Glyphs</span>
+                      <div className="h-[29px] px-[13px] bg-[rgba(255,29,37,0.10)] rounded-[20px] flex items-center justify-center">
+                           <span className="text-[#ED0C14] text-[14px] font-semibold">
+                              {completedCount}/{CHAR_SET.length}
+                           </span>
+                      </div>
+                 </div>
+                 
+                 {/* Scrollable Grid */}
+                 <div className="flex-1 overflow-y-auto pr-2 pb-10 scrollbar-thin">
+                      <CharacterGrid 
+                          selectedChar={currentChar}
+                          onSelect={handleSelectChar}
+                          fontMap={fontMap}
+                      />
+                 </div>
             </div>
-          </div>
+        </aside>
+
+        {/* Overlay for mobile sidebar */}
+        {isSidebarOpen && (
+            <div className="fixed inset-0 bg-black/20 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>
         )}
-      </main>
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col gap-[20px] lg:gap-[33px] p-4 lg:p-[36px] lg:pl-[60px] bg-white overflow-hidden w-full max-w-[1200px]">
+             
+             {/* Top Control Bar */}
+             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4 shrink-0">
+                 
+                 {/* Canvas/Preview Toggle Pill */}
+                 <div className="w-full sm:w-[261px] h-[50px] p-[3px] bg-[#FAFAFA] rounded-[30px] flex relative shrink-0">
+                      <button 
+                         onClick={() => setViewMode('CANVAS')}
+                         className={`relative z-10 flex-1 h-[44px] rounded-[26px] flex items-center justify-center text-[16px] font-medium transition-all duration-200 ${viewMode === 'CANVAS' ? 'bg-white text-black shadow-sm' : 'text-gray-400'}`}
+                      >
+                         Canvas
+                      </button>
+                      <button 
+                         onClick={() => setViewMode('PREVIEW')}
+                         className={`relative z-10 flex-1 h-[44px] rounded-[26px] flex items-center justify-center text-[16px] font-medium transition-all duration-200 ${viewMode === 'PREVIEW' ? 'bg-white text-black shadow-sm' : 'text-gray-400'}`}
+                      >
+                         Preview
+                      </button>
+                 </div>
+
+                 {/* Zen Mode Button */}
+                 <div className="flex items-center gap-[14px] self-end sm:self-auto">
+                      <div className="flex flex-col items-start gap-[2px]">
+                           {/* Progress Ring Implementation */}
+                           <div className="w-[37px] h-[37px] relative">
+                               <svg className="w-full h-full transform -rotate-90">
+                                   <circle cx="18.5" cy="18.5" r="16" fill="transparent" stroke="#F2F2F2" strokeWidth="37" />
+                                   <circle 
+                                      cx="18.5" cy="18.5" r="16" 
+                                      fill="transparent" 
+                                      stroke="#ED0C14" 
+                                      strokeWidth="37" 
+                                      strokeDasharray={`${(completedCount / CHAR_SET.length) * 100}, 100`} 
+                                      pathLength="100"
+                                   />
+                               </svg>
+                               <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className="text-[10px] font-medium text-white drop-shadow-sm">{Math.round((completedCount/CHAR_SET.length)*100)}%</span>
+                               </div>
+                           </div>
+                      </div>
+                      
+                      <button 
+                         onClick={() => setIsZenMode(true)}
+                         className="h-[44px] px-[18px] rounded-[26px] outline outline-[0.5px] outline-[#D9D9D9] flex items-center gap-[8px] hover:bg-gray-50 transition-colors whitespace-nowrap"
+                      >
+                           <div className="w-[24px] h-[24px] flex items-center justify-center">
+                                <LayoutGrid size={18} className="text-black" />
+                           </div>
+                           <span className="text-[16px] font-medium text-black hidden sm:inline">Enter Zen Mode</span>
+                           <span className="text-[16px] font-medium text-black sm:hidden">Zen</span>
+                      </button>
+                 </div>
+             </div>
+
+             {/* Main Canvas Container */}
+             <div className="flex-1 w-full relative min-h-0 flex flex-col">
+                 {isZenMode ? (
+                     <div className="flex-1 w-full bg-white border border-[#D9D9D9] rounded-[20px] overflow-hidden p-4 lg:p-8 relative flex flex-col">
+                          <div className="flex justify-end mb-4 shrink-0">
+                            <button 
+                                onClick={() => setIsZenMode(false)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 shadow-sm rounded-full text-sm font-medium hover:border-black transition-colors"
+                            >
+                                Exit Zen Mode
+                            </button>
+                          </div>
+                          <div className="flex-1 overflow-y-auto">
+                             <ZenGrid fontMap={fontMap} onSaveStroke={handleZenSave} />
+                          </div>
+                     </div>
+                 ) : (
+                    <>
+                        {viewMode === 'CANVAS' ? (
+                            <div className="w-full h-full relative flex flex-col">
+                                <div className="flex-1 relative w-full h-full max-h-full">
+                                    <DrawingPad 
+                                        char={currentChar}
+                                        onSave={handleSaveStrokes}
+                                        existingStrokes={fontMap[currentChar]?.strokes}
+                                    />
+                                    
+                                    {/* Floating Navigation Arrows */}
+                                    <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-12 lg:gap-[233px] pointer-events-none z-30">
+                                        <button 
+                                            onClick={handlePrevChar}
+                                            disabled={selectedCharIndex === 0}
+                                            className="w-[50px] h-[50px] lg:w-[62px] lg:h-[62px] rounded-full bg-white shadow-lg flex items-center justify-center pointer-events-auto hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                                        >
+                                            <ChevronLeft size={24} className="text-black" strokeWidth={2.5} />
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={handleNextChar}
+                                            disabled={selectedCharIndex === CHAR_SET.length - 1}
+                                            className="w-[50px] h-[50px] lg:w-[62px] lg:h-[62px] rounded-full bg-white shadow-lg flex items-center justify-center pointer-events-auto hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                                        >
+                                            <ChevronRight size={24} className="text-black" strokeWidth={2.5} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="w-full h-full flex flex-col overflow-hidden">
+                                <PreviewArea 
+                                    fontMap={fontMap}
+                                    letterSpacing={letterSpacing}
+                                    setLetterSpacing={setLetterSpacing}
+                                />
+                            </div>
+                        )}
+                    </>
+                 )}
+             </div>
+
+        </main>
+      </div>
 
       {/* Export Modal */}
       {isExportModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm transition-opacity" onClick={() => setIsExportModalOpen(false)}></div>
-              <div className="relative bg-white rounded-lg border border-gray-200 w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-sm" onClick={() => setIsExportModalOpen(false)}></div>
+              <div className="relative bg-white rounded-[20px] border border-[#D9D9D9] w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
                   <button 
                     onClick={() => setIsExportModalOpen(false)}
                     className="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors"
@@ -424,43 +387,34 @@ const App: React.FC = () => {
                       <X size={16} />
                   </button>
 
-                  <h3 className="text-lg font-bold text-black mb-1">Export Settings</h3>
-                  <p className="text-xs text-gray-500 mb-6">Configure your font metadata.</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Export Font</h3>
+                  <p className="text-xs text-gray-500 mb-6">Download your font family ready for installation.</p>
 
-                  <div className="space-y-4">
-                      <div>
-                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Font Name</label>
-                          <input 
-                            type="text" 
-                            value={fontName}
-                            onChange={(e) => setFontName(e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all text-sm font-medium"
-                            autoFocus
-                          />
-                      </div>
-                      
-                      <div className="p-3 bg-gray-50 rounded border border-gray-100 flex items-center gap-2">
-                           <CheckCircle2 size={16} className="text-black shrink-0" />
-                           <span className="text-xs text-gray-600">Letter Spacing: <strong>{letterSpacing > 0 ? '+' : ''}{letterSpacing}</strong></span>
+                  <div className="space-y-3">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                                <CheckCircle2 size={16} />
+                           </div>
+                           <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-gray-900 truncate">{fontName}</p>
+                                <p className="text-[10px] text-gray-500">TrueType Font (.ttf)</p>
+                           </div>
                       </div>
 
                       <button 
                         onClick={handleExport}
-                        className="geist-button w-full py-2.5 text-sm"
+                        className="w-full bg-black text-white h-10 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
                       >
-                          Download .OTF (Regular)
+                          Download Regular
                       </button>
 
                       <button 
                         onClick={handleExportFamily}
-                        className="geist-button-secondary w-full py-2.5 text-sm flex items-center justify-center gap-2 group"
+                        className="w-full bg-white border border-gray-200 text-gray-900 h-10 rounded-lg text-sm font-medium hover:border-gray-400 transition-colors flex items-center justify-center gap-2"
                       >
-                          <FileArchive size={14} className="text-gray-500 group-hover:text-black transition-colors" />
-                          <span>Download Family .ZIP</span>
+                          <FileArchive size={14} />
+                          Download Font Family (ZIP)
                       </button>
-                      <p className="text-[10px] text-gray-400 text-center leading-relaxed px-2">
-                          Includes <strong>Regular</strong>, <strong>Bold</strong> (Thicker), and <strong>Italic</strong> (Slanted) variants automatically generated from your strokes.
-                      </p>
                   </div>
               </div>
           </div>

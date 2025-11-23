@@ -303,7 +303,8 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
         unitsPerEm,
         ascender,
         descender,
-        glyphs
+        glyphs,
+        outlinesFormat: 'truetype' // Ensure it is explicitly marked as TrueType
     });
 
     return font.toArrayBuffer();
@@ -319,7 +320,7 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
         slant: 0,
         styleName: 'Regular'
     });
-    folder.file(`${fontName}-Regular.otf`, regularBuffer);
+    folder.file(`${fontName}-Regular.ttf`, regularBuffer);
 
     // 2. Bold (Thicker strokes)
     const boldBuffer = generateFont(fontName, fontMap, letterSpacing, {
@@ -327,7 +328,7 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
         slant: 0,
         styleName: 'Bold'
     });
-    folder.file(`${fontName}-Bold.otf`, boldBuffer);
+    folder.file(`${fontName}-Bold.ttf`, boldBuffer);
 
     // 3. Italic (Slanted)
     const italicBuffer = generateFont(fontName, fontMap, letterSpacing, {
@@ -335,7 +336,7 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
         slant: 0.25, // ~14 degree skew
         styleName: 'Italic'
     });
-    folder.file(`${fontName}-Italic.otf`, italicBuffer);
+    folder.file(`${fontName}-Italic.ttf`, italicBuffer);
 
     return await zip.generateAsync({ type: 'blob' });
 };
