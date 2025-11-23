@@ -1,6 +1,7 @@
 // This service previously used Gemini API but has been replaced with local static generators
 // to remove API dependencies and costs.
 
+// Sample texts restricted to supported CHAR_SET: A-Z, a-z, 0-9, . ! ? ,
 const PANGRAMS = [
   "The quick brown fox jumps over the lazy dog.",
   "Pack my box with five dozen liquor jugs.",
@@ -10,18 +11,18 @@ const PANGRAMS = [
   "Waltz, bad nymph, for quick jigs vex.",
   "Glib jocks quiz nymph to vex dwarf.",
   "0123456789",
-  "A wizard’s job is to vex chumps quickly in fog.",
+  "A wizards job is to vex chumps quickly in fog.",
   "Two driven jocks help fax my big quiz.",
-  "Check margins: 10px, 20px, 50% width.",
-  "Email: hello@example.com (Ref: #23901)",
-  "Price: $1,234.56 | VAT: 20%",
-  "Equation: E = mc² implies energy.",
-  "“Typography is the voice of text.”",
-  "Bold & Beautiful; Italic & Iconic.",
-  "Do wait! 10:00 AM? Or 2:30 PM?",
+  "Typography is the voice of text.",
+  "Do wait! 10 AM? Or 2 PM?",
   "Testing... 1, 2, 3. Testing!",
-  "System Status: [OK] 99.9% Uptime",
-  "Coordinates: 34° N, 118° W."
+  "The jay, pig, fox, zebra and my wolves quack!",
+  "Blowzy red vixens fight for a quick jump.",
+  "Jaded zombies acted quaintly but kept driving their oxen forward.",
+  "Crazy Fredericka bought many very exquisite opal jewels.",
+  "We promptly judged antique ivory buckles for the next prize.",
+  "Jinxed wizards pluck ivy from the big quilt.",
+  "Only the best players win 1234567890 points."
 ];
 
 export const generateSampleText = async (): Promise<string> => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { FontMap } from '../types';
 import { strokesToPath, smoothStrokes, alignStrokes } from '../utils/svgHelpers';
@@ -36,6 +37,9 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
         {/* Canvas-like Container */}
         <div className="relative flex-1 w-full bg-[#FAFAFA] rounded-[20px] overflow-hidden border border-transparent flex flex-col">
             
+            {/* Background Grid Pattern - Matches DrawingPad */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>
+
             {/* Top Controls Wrapper - Uses Flex Wrap for responsive stacking without overlap */}
             <div className="absolute top-0 left-0 right-0 p-3 lg:p-4 z-20 flex flex-wrap justify-between gap-2 pointer-events-none">
                 
@@ -118,7 +122,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-16 lg:py-20">
+            <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-16 lg:py-20 relative z-10">
                 <div 
                     className="w-full min-h-full flex flex-col"
                     style={{ alignItems: textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center' }}
