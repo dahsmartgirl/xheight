@@ -10,7 +10,7 @@ interface CharacterGridProps {
 
 const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, fontMap }) => {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-x-[12px] lg:gap-x-[12px] gap-y-[16px] pb-20 content-start p-[2px]">
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-x-[12px] lg:gap-x-[12px] gap-y-[16px] pb-20 content-start p-1">
       {CHAR_SET.map(char => {
         const data = fontMap[char];
         const hasData = data && data.strokes.length > 0;
@@ -30,6 +30,12 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
             cardStyles = 'border-gray-brand text-gray-brand outline-[0.5px] outline outline-[#D9D9D9] hover:border-gray-400 hover:z-10';
         }
 
+        // Calculate dynamic stroke width for consistent visual weight
+        // Fallback to 300/12 if canvasWidth is missing
+        const canvasW = data?.canvasWidth || 300;
+        // ~4% of width looks good for a thumbnail representation
+        const normalizedStrokeWidth = canvasW * 0.04; 
+
         return (
           <button
             key={char}
@@ -42,12 +48,12 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
             {/* Visual Preview Area (Top) */}
             <div className="w-full h-[65%] relative flex items-center justify-center p-1.5 border-b border-transparent">
                {hasData ? (
-                 <svg viewBox={`0 0 ${data.canvasWidth} ${data.canvasHeight}`} className="w-full h-full">
+                 <svg viewBox={`0 0 ${canvasW} ${data.canvasHeight || 300}`} className="w-full h-full overflow-visible">
                     <path 
                        d={strokesToPath(data.strokes, 1, 0, 0)} 
                        fill="none" 
                        stroke="currentColor" 
-                       strokeWidth="12" 
+                       strokeWidth={normalizedStrokeWidth} 
                        strokeLinecap="round" 
                        strokeLinejoin="round"
                     />
