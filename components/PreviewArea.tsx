@@ -33,25 +33,25 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
   return (
     <div className="flex flex-col h-full w-full bg-[#FAFAFA] rounded-[20px] overflow-hidden relative">
         
-        {/* Controls Overlay */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 lg:px-8 py-6 z-10 gap-4 border-b sm:border-b-0 border-gray-100">
-             <div className="flex flex-wrap items-center gap-4 lg:gap-8 w-full sm:w-auto">
+        {/* Controls Overlay - Scaled Padding */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 lg:px-6 py-4 z-10 gap-3 border-b sm:border-b-0 border-gray-100">
+             <div className="flex flex-wrap items-center gap-4 lg:gap-6 w-full sm:w-auto">
                  {/* Font Size */}
-                 <div className="flex items-center gap-3">
-                    <Type size={16} className="text-gray-400" />
+                 <div className="flex items-center gap-2">
+                    <Type size={14} className="text-gray-400" />
                     <input 
                        type="range" 
                        min="20" 
                        max="200" 
                        value={fontSize} 
                        onChange={(e) => setFontSize(Number(e.target.value))}
-                       className="w-24 lg:w-32 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                       className="w-20 lg:w-24 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                     />
                  </div>
 
                  {/* Letter Spacing */}
-                 <div className="flex items-center gap-3">
-                    <MoveHorizontal size={16} className="text-gray-400" />
+                 <div className="flex items-center gap-2">
+                    <MoveHorizontal size={14} className="text-gray-400" />
                     <input 
                        type="range" 
                        min="-200" 
@@ -59,7 +59,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                        step="1"
                        value={letterSpacing} 
                        onChange={(e) => setLetterSpacing(Number(e.target.value))}
-                       className="w-24 lg:w-32 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                       className="w-20 lg:w-24 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                     />
                  </div>
              </div>
@@ -75,7 +75,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
         {/* Input & Output */}
         <div className="flex-1 flex flex-col overflow-hidden">
              {/* Text Output Area */}
-             <div className="flex-1 overflow-y-auto p-4 lg:p-8 flex flex-col items-center">
+             <div className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col items-center">
                  <div className="flex flex-wrap gap-y-4 content-start justify-center max-w-4xl">
                     {text.split(' ').map((word, wIdx) => (
                         <div key={wIdx} className="flex whitespace-nowrap items-end mr-4 mb-4" style={{ height: fontSize }}>
@@ -136,11 +136,11 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
             </div>
 
             {/* Input Field */}
-            <div className="p-0 border-t border-gray-200 mx-4 lg:mx-8 mb-8">
+            <div className="p-0 border-t border-gray-200 mx-4 lg:mx-6 mb-6">
                 <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    className="w-full h-24 pt-6 outline-none text-center text-gray-500 font-sans text-lg placeholder:text-gray-300 resize-none bg-transparent"
+                    className="w-full h-20 pt-4 outline-none text-center text-gray-500 font-sans text-base placeholder:text-gray-300 resize-none bg-transparent"
                     placeholder="Type to preview..."
                 />
             </div>

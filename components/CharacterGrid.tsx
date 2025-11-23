@@ -10,7 +10,7 @@ interface CharacterGridProps {
 
 const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, fontMap }) => {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-x-[16px] lg:gap-x-[23px] gap-y-[20px] pb-20 content-start">
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-x-[12px] lg:gap-x-[12px] gap-y-[16px] pb-20 content-start p-[2px]">
       {CHAR_SET.map(char => {
         const data = fontMap[char];
         const hasData = data && data.strokes.length > 0;
@@ -21,15 +21,15 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
             key={char}
             onClick={() => onSelect(char)}
             className={`
-              relative flex flex-col items-center justify-start rounded-[20px] transition-all duration-200 group w-full aspect-[79/121]
+              relative flex flex-col items-center justify-start rounded-[16px] transition-all duration-200 group w-full aspect-[79/121]
               ${isSelected 
-                ? 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14]' 
-                : 'border-gray-brand text-gray-brand outline-[0.5px] outline outline-[#D9D9D9] hover:border-gray-400'
+                ? 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14] shadow-sm z-10' 
+                : 'border-gray-brand text-gray-brand outline-[0.5px] outline outline-[#D9D9D9] hover:border-gray-400 hover:z-10'
               }
             `}
           >
             {/* Visual Preview Area (Top) */}
-            <div className="w-full h-[65%] relative flex items-center justify-center p-2 border-b border-transparent">
+            <div className="w-full h-[65%] relative flex items-center justify-center p-1.5 border-b border-transparent">
                {hasData ? (
                  <svg viewBox={`0 0 ${data.canvasWidth} ${data.canvasHeight}`} className="w-full h-full">
                     <path 
@@ -46,9 +46,9 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
                )}
             </div>
 
-            {/* Character Label (Bottom) */}
+            {/* Character Label (Bottom) - Scaled: 40px -> 28px */}
             <div className="flex-1 flex items-center justify-center pb-2">
-                <span className="text-[30px] lg:text-[40px] font-normal leading-none font-['Inter']">
+                <span className="text-[24px] lg:text-[28px] font-normal leading-none font-['Inter']">
                     {char}
                 </span>
             </div>

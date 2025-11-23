@@ -186,12 +186,12 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
         className="relative flex-1 w-full bg-[#FAFAFA] rounded-[20px] overflow-hidden cursor-crosshair touch-none border border-transparent"
       >
         {/* Background Grid Pattern (Subtle) */}
-        {showGuides && <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>}
+        {showGuides && <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>}
 
-        {/* Faint Background Char - Exact Style from Design */}
+        {/* Faint Background Char - Scaled: 250px -> 160px */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
              <span 
-               className="font-['Inter'] font-normal text-[#F2F2F2] text-[150px] lg:text-[250px]" 
+               className="font-['Inter'] font-normal text-[#F2F2F2] text-[120px] lg:text-[160px]" 
                style={{ lineHeight: '1' }}
              >
                 {char}
@@ -210,20 +210,20 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
           className="relative z-10 w-full h-full block"
         />
 
-        {/* Draw "C" Pill */}
-        <div className="absolute top-[17px] left-[21px] z-20 bg-white rounded-[26px] px-[18px] py-[8px] flex items-center gap-[4px] shadow-sm">
-            <span className="text-[14px] lg:text-[16px] font-['Inter'] font-medium text-black">Draw</span>
-            <span className="text-[14px] lg:text-[16px] font-['Inter'] font-medium text-[#ED0C14]">“{char}”</span>
+        {/* Draw "C" Pill - Scaled Position and Font */}
+        <div className="absolute top-[12px] left-[16px] z-20 bg-white rounded-[26px] px-[14px] py-[6px] flex items-center gap-[4px] shadow-sm">
+            <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black">Draw</span>
+            <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-[#ED0C14]">“{char}”</span>
         </div>
 
-        {/* Floating Toolbar Pill */}
-        <div className="absolute top-[17px] right-[21px] z-20 bg-white rounded-[26px] h-[38px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm">
+        {/* Floating Toolbar Pill - Scaled Position and Height */}
+        <div className="absolute top-[12px] right-[16px] z-20 bg-white rounded-[26px] h-[32px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm">
            <button 
              onClick={handleUndo} 
              disabled={strokes.length === 0}
              className="text-gray-400 hover:text-black transition-colors disabled:opacity-30"
            >
-             <Undo size={18} strokeWidth={2} />
+             <Undo size={16} strokeWidth={2} />
            </button>
            
            <button 
@@ -231,24 +231,24 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
              disabled={redoStack.length === 0}
              className="text-gray-400 hover:text-black transition-colors disabled:opacity-30"
            >
-             <Redo size={18} strokeWidth={2} />
+             <Redo size={16} strokeWidth={2} />
            </button>
 
-           <div className="w-[1px] h-[17px] bg-[#D9D9D9]"></div>
+           <div className="w-[1px] h-[14px] bg-[#D9D9D9]"></div>
 
            <button 
              onClick={clearCanvas} 
              disabled={strokes.length === 0}
              className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-30"
            >
-             <Trash2 size={18} strokeWidth={2} />
+             <Trash2 size={16} strokeWidth={2} />
            </button>
            
            <button 
              onClick={() => setShowGuides(!showGuides)} 
              className={`${showGuides ? 'text-black' : 'text-gray-400'} hover:text-black transition-colors`}
            >
-             <Grid3x3 size={18} strokeWidth={2} />
+             <Grid3x3 size={16} strokeWidth={2} />
            </button>
         </div>
       </div>
