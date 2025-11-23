@@ -16,16 +16,27 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
         const hasData = data && data.strokes.length > 0;
         const isSelected = selectedChar === char;
         
+        // Dynamic styles based on state
+        let cardStyles = "";
+        
+        if (isSelected) {
+            // Selected: Red Theme + Shadow + Z-Index
+            cardStyles = 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14] shadow-sm z-10';
+        } else if (hasData) {
+            // Filled but not selected: Red Theme (Active) but no Shadow
+            cardStyles = 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14] hover:z-10';
+        } else {
+            // Empty: Gray Theme
+            cardStyles = 'border-gray-brand text-gray-brand outline-[0.5px] outline outline-[#D9D9D9] hover:border-gray-400 hover:z-10';
+        }
+
         return (
           <button
             key={char}
             onClick={() => onSelect(char)}
             className={`
               relative flex flex-col items-center justify-start rounded-[16px] transition-all duration-200 group w-full aspect-[79/121]
-              ${isSelected 
-                ? 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14] shadow-sm z-10' 
-                : 'border-gray-brand text-gray-brand outline-[0.5px] outline outline-[#D9D9D9] hover:border-gray-400 hover:z-10'
-              }
+              ${cardStyles}
             `}
           >
             {/* Visual Preview Area (Top) */}

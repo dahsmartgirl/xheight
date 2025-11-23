@@ -29,7 +29,7 @@ export const smoothStrokes = (strokes: Stroke[]): Stroke[] => {
   });
 };
 
-const DESCENDERS = ['g', 'j', 'p', 'q', 'y'];
+const DESCENDERS = ['g', 'j', 'p', 'q', 'y', ',', 'f'];
 
 // Centers strokes both horizontally and vertically in the canvas
 // If 'char' is provided and is a descender, it applies a lower center point
@@ -58,9 +58,7 @@ export const centerStrokes = (inputStrokes: Stroke[], width: number, height: num
 
     // Smart Descender Logic
     if (char && DESCENDERS.includes(char)) {
-        // Shift the center target down by ~12% of height
-        // This keeps the "body" of the letter closer to the baseline 
-        // while allowing the tail to extend down.
+        // Shift the center target down
         targetCenterY = height * 0.62;
     }
 
@@ -79,7 +77,7 @@ export const centerStrokes = (inputStrokes: Stroke[], width: number, height: num
     }));
 };
 
-// Aligns strokes horizontally to the center of the canvas (used in generation/preview)
+// Aligns strokes horizontally to the center of the canvas (used in preview)
 export const alignStrokes = (strokes: Stroke[], canvasWidth: number): Stroke[] => {
     if (strokes.length === 0) return strokes;
 
@@ -142,28 +140,27 @@ export const strokesToPath = (strokes: Stroke[], scale = 1, offsetX = 0, offsetY
 const getAngle = (p1: Point, p2: Point) => Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
 // Generate a closed path outline from a single line stroke
-// Supports thickness (for Bold) and slant (for Italic)
-const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number, thickness: number, slant: number): opentype.Path => {
+const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number, thickness: number, slant: number, dx: number = 0, dy: number = 0): opentype.Path => {
     const path = new opentype.Path();
     const points = stroke.points;
     
     if (points.length === 0) return path;
 
     // Helper to transform coordinates (Scale + Slant + Flip Y for OTF)
-    // Slant formula: x_new = x + y * slant (where y is relative to baseline?)
-    // Here input Y is canvas coords (0 at top).
-    // We convert to OTF coords: y_otf = ascender - y_canvas * scale.
-    // Then we slant based on y_otf.
     const transform = (pt: Point, offX: number, offY: number) => {
         const x_scaled = pt.x * scale;
         const y_scaled = pt.y * scale; // This is distance from top
         
         // Add offset perpendicular to stroke angle
-        const x_offset = x_scaled + offX;
-        const y_offset = y_scaled - offY; // Subtract Y offset because canvas Y is inverted relative to math angle
+        const x_local = x_scaled + offX;
+        const y_local = y_scaled - offY;
         
-        const y_otf = ascender - y_offset;
-        const x_final = x_offset + (y_otf * slant);
+        // Convert to font coordinates (Flip Y)
+        const y_otf = ascender - y_local + dy;
+        
+        // Apply slant (Italic)
+        // x_final = x + (y * slant)
+        const x_final = x_local + (y_otf * slant) + dx;
         
         return { x: x_final, y: y_otf };
     };
@@ -171,11 +168,11 @@ const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number
     // --- HANDLE DOTS ---
     if (points.length === 1 || (points.length === 2 && Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) < 2)) {
         const p = points[0];
-        const r = thickness * scale; 
+        const r = thickness * scale * 0.8; 
         
-        // Simplified dot (diamond/circle approx)
         const c = transform(p, 0, 0);
         
+        // Diamond shape for dots avoids curve complexity and often looks better for handwriting
         path.moveTo(c.x, c.y - r);
         path.lineTo(c.x + r, c.y);
         path.lineTo(c.x, c.y + r);
@@ -205,12 +202,16 @@ const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number
         }
     }
 
+    // Trace the outline
     const startL = leftSide[0];
     path.moveTo(startL.x, startL.y);
 
     for (let i = 1; i < leftSide.length; i++) {
         path.lineTo(leftSide[i].x, leftSide[i].y);
     }
+    
+    // Cap round
+    // path.quadraticCurveTo(...) - Keeping it straight for robustness against overlaps
 
     for (let i = rightSide.length - 1; i >= 0; i--) {
         path.lineTo(rightSide[i].x, rightSide[i].y);
@@ -222,7 +223,7 @@ const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number
 
 interface FontOptions {
     thickness?: number;
-    slant?: number; // 0 for regular, ~0.2-0.3 for italic
+    slant?: number;
     styleName?: string;
 }
 
@@ -234,7 +235,7 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
 
     const glyphs: opentype.Glyph[] = [];
 
-    // .notdef glyph
+    // .notdef glyph (Required for valid font)
     const notdefPath = new opentype.Path();
     notdefPath.moveTo(200, 0);
     notdefPath.lineTo(200, 700);
@@ -249,6 +250,14 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
         path: notdefPath
     }));
 
+    // Space Glyph (Critical for word spacing)
+    glyphs.push(new opentype.Glyph({
+        name: 'space',
+        unicode: 32,
+        advanceWidth: 400 + (letterSpacing * 10), // Generous space width
+        path: new opentype.Path()
+    }));
+
     CHAR_SET.forEach(char => {
         const data = fontMap[char];
         if (data && data.strokes.length > 0) {
@@ -256,46 +265,60 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
             // 1. Smooth the strokes
             const smoothedStrokes = smoothStrokes(data.strokes);
 
-            // 2. Align (Center) the strokes horizontally
-            // Note: Vertical centering is assumed to be done by App before passing here.
-            const alignedStrokes = alignStrokes(smoothedStrokes, data.canvasWidth);
+            // 2. Metrics Calculation
+            // Instead of using the full canvas width, we calculate the ACTUAL width of the drawing.
+            // This fixes the "unnecessary spacing" and overlapping issues.
+            
+            // First, find the bounding box of the strokes in Canvas coordinates
+            let minX = Infinity, maxX = -Infinity;
+            smoothedStrokes.forEach(s => s.points.forEach(p => {
+                if (p.x < minX) minX = p.x;
+                if (p.x > maxX) maxX = p.x;
+            }));
 
+            // Scale factor to convert canvas pixels to font units
             const scale = unitsPerEm / data.canvasHeight;
+            
+            // Font Units Bounding Box
+            const fMinX = minX * scale;
+            const fMaxX = maxX * scale;
+            const fWidth = fMaxX - fMinX;
+
+            // Side Bearings (Padding around the letter)
+            const leftSideBearing = 50; 
+            const rightSideBearing = 50 + (letterSpacing * 10);
+
+            // Calculate shift needed to place the glyph at leftSideBearing
+            // We want the leftmost point (fMinX) to move to (leftSideBearing)
+            // So shift = leftSideBearing - fMinX
+            // However, createOutlineFromStroke does its own transforms. 
+            // We need to pass a dx that applies in Font Units.
+            
+            // Logic: The transform function takes `pt.x * scale`. 
+            // We want `(pt.x * scale) + dx` to equal `leftSideBearing` when `pt.x` is `minX`.
+            const dx = leftSideBearing - fMinX;
+
             const glyphPath = new opentype.Path();
 
-            // 3. Convert to Outlines with Thickness and Slant
-            alignedStrokes.forEach(stroke => {
-                const outline = createOutlineFromStroke(stroke, scale, ascender, thickness, slant);
+            // 3. Convert to Outlines
+            smoothedStrokes.forEach(stroke => {
+                // We pass dy=0 because vertical centering is already handled by 'centerStrokes' in the app
+                const outline = createOutlineFromStroke(stroke, scale, ascender, thickness, slant, dx, 0);
                 glyphPath.extend(outline);
             });
 
-            const baseWidth = (data.canvasWidth * scale) * 0.75; 
-            const finalWidth = Math.max(baseWidth, 200) + (letterSpacing * 10);
+            // 4. Calculate Advance Width
+            // Width = LSB + Glyph Width + RSB
+            const advanceWidth = Math.round(leftSideBearing + fWidth + rightSideBearing);
 
             glyphs.push(new opentype.Glyph({
                 name: char,
                 unicode: char.codePointAt(0) || 0,
-                advanceWidth: finalWidth, 
+                advanceWidth: advanceWidth, 
                 path: glyphPath
-            }));
-        } else {
-            glyphs.push(new opentype.Glyph({
-                name: char,
-                unicode: char.codePointAt(0) || 0,
-                advanceWidth: 300,
-                path: new opentype.Path()
             }));
         }
     });
-
-    if (!glyphs.find(g => g.unicode === 32)) {
-        glyphs.push(new opentype.Glyph({
-            name: 'space',
-            unicode: 32,
-            advanceWidth: 300 + (letterSpacing * 10),
-            path: new opentype.Path()
-        }));
-    }
 
     const font = new opentype.Font({
         familyName: fontName,
@@ -304,7 +327,7 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
         ascender,
         descender,
         glyphs,
-        outlinesFormat: 'truetype' // Ensure it is explicitly marked as TrueType
+        outlinesFormat: 'truetype'
     });
 
     return font.toArrayBuffer();
@@ -324,7 +347,7 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
 
     // 2. Bold (Thicker strokes)
     const boldBuffer = generateFont(fontName, fontMap, letterSpacing, {
-        thickness: 24, // Double thickness
+        thickness: 28, // Beefier bold
         slant: 0,
         styleName: 'Bold'
     });
@@ -333,7 +356,7 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
     // 3. Italic (Slanted)
     const italicBuffer = generateFont(fontName, fontMap, letterSpacing, {
         thickness: 12,
-        slant: 0.25, // ~14 degree skew
+        slant: 0.25, 
         styleName: 'Italic'
     });
     folder.file(`${fontName}-Italic.ttf`, italicBuffer);

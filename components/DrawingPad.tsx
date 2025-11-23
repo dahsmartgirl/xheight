@@ -15,7 +15,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
   const [strokes, setStrokes] = useState<Stroke[]>(existingStrokes || []);
   const [redoStack, setRedoStack] = useState<Stroke[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
-  const [showGuides, setShowGuides] = useState(false);
+  const [showGuides, setShowGuides] = useState(true);
 
   // Sync with prop changes (navigation)
   useEffect(() => {
