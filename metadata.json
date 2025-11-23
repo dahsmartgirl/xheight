@@ -1,0 +1,5 @@
+{
+  "name": "ScriptSmith - Handwriting to Font",
+  "description": "Convert your unique handwriting into a digital font. Draw characters, preview them in real-time, and export as an SVG font file.",
+  "requestFramePermissions": []
+}

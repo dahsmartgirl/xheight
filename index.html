@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ScriptSmith</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      
+      :root {
+        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #fafafa;
+        color: #171717;
+        min-height: 100vh;
+      }
+
+      /* Hide scrollbar for cleaner look */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      /* Vercel-like utilities */
+      .geist-card {
+        background: #ffffff;
+        border: 1px solid #eaeaea;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.04);
+        border-radius: 8px; /* rounded-lg */
+      }
+      
+      .geist-button {
+        background: #171717;
+        color: #ffffff;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+      .geist-button:hover {
+        background: #333333;
+      }
+
+      .geist-button-secondary {
+        background: #ffffff;
+        color: #171717;
+        border: 1px solid #eaeaea;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+      .geist-button-secondary:hover {
+        border-color: #000;
+      }
+
+      canvas {
+        touch-action: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "opentype.js": "https://unpkg.com/opentype.js@1.3.4/dist/opentype.module.js"
+  }
+}
+</script>
+</head>
+  <body class="antialiased selection:bg-black selection:text-white">
+    <div id="root"></div>
+  </body>
+</html>
