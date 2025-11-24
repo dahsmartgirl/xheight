@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FontMap } from '../types';
 import { strokesToPath, smoothStrokes, alignStrokes } from '../utils/svgHelpers';
 import { Type, MoveHorizontal, AlignLeft, AlignCenter, AlignRight, RotateCcw, Plus, Minus } from 'lucide-react';
@@ -21,7 +21,7 @@ const ToolbarButton = ({ onClick, active, children, disabled, title }: any) => (
     disabled={disabled}
     title={title}
     className={`
-      w-7 h-7 flex items-center justify-center transition-colors shrink-0 rounded-md
+      w-7 h-7 flex items-center justify-center shrink-0 rounded-md
       ${active
         ? 'text-black dark:text-white'
         : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white'
@@ -33,28 +33,54 @@ const ToolbarButton = ({ onClick, active, children, disabled, title }: any) => (
   </button>
 );
 
-const NumberControl = ({ value, onChange, min, max, step, icon: Icon, label }: any) => (
-  <div className="flex items-center gap-2 shrink-0" title={label}>
-    {Icon && <div className="text-gray-400 dark:text-neutral-500 ml-1"><Icon size={16} strokeWidth={2} /></div>}
-    <div className="flex items-center">
-        <button
-            onClick={() => onChange(Math.max(min, value - step))}
-            className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
-        >
-            <Minus size={14} strokeWidth={2.5} />
-        </button>
-        <span className="min-w-[28px] text-center text-[13px] font-medium text-black dark:text-white tabular-nums select-none">
-            {value}
-        </span>
-        <button
-            onClick={() => onChange(Math.min(max, value + step))}
-            className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
-        >
-            <Plus size={14} strokeWidth={2.5} />
-        </button>
+const NumberControl = ({ value, onChange, min, max, step, icon: Icon, label }: any) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(value.toString());
+
+  useEffect(() => {
+    if (!isEditing) setInputValue(value.toString());
+  }, [value, isEditing]);
+
+  const commit = () => {
+    setIsEditing(false);
+    let num = parseInt(inputValue, 10);
+    if (isNaN(num)) num = value;
+    num = Math.max(min, Math.min(max, num));
+    onChange(num);
+    setInputValue(num.toString());
+  };
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-2 shrink-0" title={label}>
+      {Icon && <div className="text-gray-400 dark:text-neutral-500 ml-1 hidden sm:block"><Icon size={16} strokeWidth={2} /></div>}
+      <div className="flex items-center">
+          <button
+              onClick={() => onChange(Math.max(min, value - step))}
+              className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white"
+          >
+              <Minus size={14} strokeWidth={2.5} />
+          </button>
+          <div className="w-[32px] sm:w-[36px] flex justify-center">
+            <input
+                type="number"
+                value={isEditing ? inputValue : value}
+                onFocus={() => setIsEditing(true)}
+                onChange={(e) => setInputValue(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => e.key === 'Enter' && commit()}
+                className="w-full text-center text-[13px] font-medium text-black dark:text-white bg-transparent outline-none appearance-none p-0 m-0 [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+          <button
+              onClick={() => onChange(Math.min(max, value + step))}
+              className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white"
+          >
+              <Plus size={14} strokeWidth={2.5} />
+          </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLetterSpacing }) => {
   const [text, setText] = useState("The quick brown fox\njumps over the lazy dog.");
@@ -91,19 +117,19 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                 <div className="pointer-events-auto self-start sm:self-auto">
                     <button 
                         onClick={async () => setText(await generateSampleText())}
-                        className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-[14px] flex items-center gap-[6px] shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors group"
+                        className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-[14px] flex items-center gap-[6px] shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 group"
                     >
-                        <RotateCcw size={14} className="text-[#ED0C14] group-hover:rotate-180 transition-transform duration-500" strokeWidth={2.5} />
+                        <RotateCcw size={14} className="text-[#ED0C14] group-hover:rotate-180" strokeWidth={2.5} />
                         <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white">Randomize</span>
                     </button>
                 </div>
 
-                {/* Formatting Toolbar Pill - Desktop: Right, Mobile: Top */}
-                <div className="pointer-events-auto self-end sm:self-auto max-w-full">
-                     <div className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-3 flex items-center gap-3 lg:gap-4 shadow-sm select-none whitespace-nowrap">
+                {/* Formatting Toolbar Pill - Desktop: Right, Mobile: Top (Left Aligned when stacked) */}
+                <div className="pointer-events-auto self-start sm:self-auto max-w-full">
+                     <div className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-2 sm:px-3 flex items-center gap-1 sm:gap-3 lg:gap-4 shadow-sm select-none whitespace-nowrap overflow-hidden">
                          
                          {/* Alignment */}
-                         <div className="flex items-center gap-1 shrink-0">
+                         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                             <ToolbarButton active={textAlign === 'left'} onClick={() => setTextAlign('left')} title="Align Left">
                                 <AlignLeft size={16} strokeWidth={2.5}/>
                             </ToolbarButton>
@@ -148,13 +174,13 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 lg:px-8 py-28 relative z-10 scrollbar-thin">
                 <div 
-                    className="w-full min-h-full flex flex-col text-black dark:text-white break-words transition-all duration-300 ease-out"
+                    className="w-full min-h-full flex flex-col text-black dark:text-white break-words"
                     style={{ alignItems: textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center' }}
                 >
                      {text.split('\n').map((line, lIdx) => (
                         <div 
                             key={lIdx} 
-                            className="flex flex-wrap max-w-full transition-all duration-300"
+                            className="flex flex-wrap max-w-full"
                             style={{ 
                                 justifyContent: textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center',
                                 marginBottom: fontSize * 0.4,
@@ -212,7 +238,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
 
             {/* Floating Input Pill */}
             <div className="absolute bottom-[24px] left-4 right-4 z-30 flex justify-center pointer-events-none">
-                 <div className="bg-white dark:bg-neutral-800 rounded-[30px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden border border-transparent focus-within:border-gray-200 dark:focus-within:border-neutral-700 transition-colors pointer-events-auto">
+                 <div className="bg-white dark:bg-neutral-800 rounded-[30px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden border border-transparent focus-within:border-gray-200 dark:focus-within:border-neutral-700 pointer-events-auto">
                      <input
                         type="text"
                         value={text}

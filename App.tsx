@@ -254,7 +254,7 @@ const App: React.FC = () => {
         
         {/* Sidebar */}
         <aside className={`
-            fixed inset-y-0 left-0 z-[60] w-[260px] bg-white dark:bg-neutral-950 transform transition-transform duration-300 ease-in-out border-r border-[#D9D9D9] dark:border-neutral-800 flex flex-col gap-[20px] p-5
+            fixed inset-y-0 left-0 z-[60] w-[260px] bg-white dark:bg-neutral-950 transform border-r border-[#D9D9D9] dark:border-neutral-800 flex flex-col gap-[20px] p-5
             lg:relative lg:translate-x-0 lg:w-[280px] lg:p-[24px] lg:z-0
             ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:shadow-none'}
         `}>
@@ -407,7 +407,7 @@ const App: React.FC = () => {
       {isExportModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-sm" onClick={() => setIsExportModalOpen(false)}></div>
-              <div className="relative bg-white dark:bg-neutral-900 rounded-[20px] border border-[#D9D9D9] dark:border-neutral-800 w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="relative bg-white dark:bg-neutral-900 rounded-[20px] border border-[#D9D9D9] dark:border-neutral-800 w-full max-w-sm p-6 shadow-2xl">
                   <button 
                     onClick={() => setIsExportModalOpen(false)}
                     className="absolute top-4 right-4 text-gray-400 hover:text-black dark:hover:text-white"
