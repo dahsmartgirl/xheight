@@ -185,7 +185,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes, 
       {/* Canvas Container */}
       <div 
         ref={containerRef}
-        className="relative flex-1 w-full bg-[#FAFAFA] dark:bg-neutral-900 rounded-[20px] overflow-hidden cursor-crosshair touch-none border border-transparent transition-colors duration-200"
+        className="relative flex-1 w-full bg-[#FAFAFA] dark:bg-neutral-900 rounded-[20px] overflow-hidden cursor-crosshair touch-none border border-transparent"
       >
         {/* Background Grid Pattern (Subtle) */}
         {showGuides && <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>}
@@ -193,7 +193,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes, 
         {/* Faint Background Char */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
              <span 
-               className="font-['Inter'] font-normal text-[#F2F2F2] dark:text-neutral-800 text-[120px] lg:text-[160px] transition-colors" 
+               className="font-['Inter'] font-normal text-[#F2F2F2] dark:text-neutral-800 text-[120px] lg:text-[160px]" 
                style={{ lineHeight: '1' }}
              >
                 {char}
@@ -213,13 +213,13 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes, 
         />
 
         {/* Draw "C" Pill */}
-        <div className="absolute top-[12px] left-[16px] z-20 bg-white dark:bg-neutral-800 rounded-[26px] px-[14px] py-[6px] flex items-center gap-[4px] shadow-sm transition-colors">
+        <div className="absolute top-[12px] left-[16px] z-20 bg-white dark:bg-neutral-800 rounded-[26px] px-[14px] py-[6px] flex items-center gap-[4px] shadow-sm">
             <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white">Draw</span>
             <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-[#ED0C14]">“{char}”</span>
         </div>
 
         {/* Floating Toolbar Pill */}
-        <div className="absolute top-[12px] right-[16px] z-20 bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm transition-colors">
+        <div className="absolute top-[12px] right-[16px] z-20 bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm">
            <button 
              onClick={handleUndo} 
              disabled={strokes.length === 0}

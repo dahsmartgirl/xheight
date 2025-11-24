@@ -35,7 +35,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
   return (
     <div className="w-full h-full relative flex flex-col">
         {/* Canvas-like Container */}
-        <div className="relative flex-1 w-full bg-[#FAFAFA] dark:bg-neutral-900 rounded-[20px] overflow-hidden border border-transparent flex flex-col transition-colors duration-200">
+        <div className="relative flex-1 w-full bg-[#FAFAFA] dark:bg-neutral-900 rounded-[20px] overflow-hidden border border-transparent flex flex-col">
             
             {/* Background Grid Pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>
@@ -188,7 +188,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
 
             {/* Floating Input Pill */}
             <div className="absolute bottom-[24px] left-4 right-4 z-30 flex justify-center">
-                 <div className="bg-white dark:bg-neutral-800 rounded-[30px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden transition-all">
+                 <div className="bg-white dark:bg-neutral-800 rounded-[30px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden">
                      <input
                         type="text"
                         value={text}

@@ -41,7 +41,7 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
             key={char}
             onClick={() => onSelect(char)}
             className={`
-              relative flex flex-col items-center justify-start rounded-[16px] transition-all duration-200 group w-full aspect-[79/121]
+              relative flex flex-col items-center justify-start rounded-[16px] group w-full aspect-[79/121]
               ${cardStyles}
             `}
           >
