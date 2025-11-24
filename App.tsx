@@ -374,7 +374,7 @@ const App: React.FC = () => {
                                 <button 
                                     onClick={handlePrevChar}
                                     disabled={selectedCharIndex === 0}
-                                    className="w-[40px] h-[40px] lg:w-[48px] lg:h-[48px] rounded-full bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center pointer-events-auto hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                                    className="w-[40px] h-[40px] lg:w-[48px] lg:h-[48px] rounded-full bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center pointer-events-auto disabled:opacity-50"
                                 >
                                     <ChevronLeft size={20} className="text-black dark:text-white" strokeWidth={2.5} />
                                 </button>
@@ -382,7 +382,7 @@ const App: React.FC = () => {
                                 <button 
                                     onClick={handleNextChar}
                                     disabled={selectedCharIndex === CHAR_SET.length - 1}
-                                    className="w-[40px] h-[40px] lg:w-[48px] lg:h-[48px] rounded-full bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center pointer-events-auto hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                                    className="w-[40px] h-[40px] lg:w-[48px] lg:h-[48px] rounded-full bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center pointer-events-auto disabled:opacity-50"
                                 >
                                     <ChevronRight size={20} className="text-black dark:text-white" strokeWidth={2.5} />
                                 </button>
