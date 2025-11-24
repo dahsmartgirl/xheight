@@ -12,7 +12,7 @@ interface PreviewAreaProps {
 }
 
 const ToolbarDivider = () => (
-    <div className="w-[1px] h-[14px] bg-[#D9D9D9] dark:bg-neutral-700 shrink-0 mx-1"></div>
+    <div className="w-[1px] h-[14px] bg-[#D9D9D9] dark:bg-neutral-700 shrink-0"></div>
 );
 
 const ToolbarButton = ({ onClick, active, children, disabled, title }: any) => (
@@ -21,10 +21,10 @@ const ToolbarButton = ({ onClick, active, children, disabled, title }: any) => (
     disabled={disabled}
     title={title}
     className={`
-      w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0
+      w-7 h-7 flex items-center justify-center transition-colors shrink-0 rounded-md
       ${active
-        ? 'text-black dark:text-white bg-gray-100 dark:bg-neutral-700 font-medium'
-        : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-neutral-800'
+        ? 'text-black dark:text-white'
+        : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white'
       }
       disabled:opacity-30 disabled:cursor-not-allowed
     `}
@@ -39,16 +39,16 @@ const NumberControl = ({ value, onChange, min, max, step, icon: Icon, label }: a
     <div className="flex items-center">
         <button
             onClick={() => onChange(Math.max(min, value - step))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+            className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
         >
             <Minus size={14} strokeWidth={2.5} />
         </button>
-        <span className="min-w-[32px] text-center text-[13px] font-medium text-black dark:text-white tabular-nums select-none">
+        <span className="min-w-[28px] text-center text-[13px] font-medium text-black dark:text-white tabular-nums select-none">
             {value}
         </span>
         <button
             onClick={() => onChange(Math.min(max, value + step))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+            className="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
         >
             <Plus size={14} strokeWidth={2.5} />
         </button>
@@ -84,65 +84,69 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
             {/* Background Grid Pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>
 
-            {/* Top Left: Randomize Pill */}
-            <div className="absolute top-[12px] left-[16px] z-20">
-                <button 
-                    onClick={async () => setText(await generateSampleText())}
-                    className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-[14px] flex items-center gap-[6px] shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
-                >
-                    <RotateCcw size={14} className="text-[#ED0C14]" strokeWidth={2.5} />
-                    <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white hidden sm:inline">Randomize</span>
-                </button>
-            </div>
+            {/* Top Controls Container - Floating & Responsive Stack */}
+            <div className="absolute top-3 inset-x-4 z-20 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:items-start pointer-events-none">
+                
+                {/* Randomize Pill - Desktop: Left, Mobile: Bottom */}
+                <div className="pointer-events-auto self-start sm:self-auto">
+                    <button 
+                        onClick={async () => setText(await generateSampleText())}
+                        className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-[14px] flex items-center gap-[6px] shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors group"
+                    >
+                        <RotateCcw size={14} className="text-[#ED0C14] group-hover:rotate-180 transition-transform duration-500" strokeWidth={2.5} />
+                        <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white">Randomize</span>
+                    </button>
+                </div>
 
-            {/* Top Right: Formatting Toolbar Pill */}
-            <div className="absolute top-[12px] right-[16px] z-20 max-w-[calc(100%-140px)] sm:max-w-none">
-                 <div className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-2 sm:px-3 flex items-center gap-1 sm:gap-2 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-                     
-                     {/* Alignment */}
-                     <div className="flex items-center gap-0.5 shrink-0">
-                        <ToolbarButton active={textAlign === 'left'} onClick={() => setTextAlign('left')} title="Align Left">
-                            <AlignLeft size={16} strokeWidth={2.5}/>
-                        </ToolbarButton>
-                        <ToolbarButton active={textAlign === 'center'} onClick={() => setTextAlign('center')} title="Align Center">
-                            <AlignCenter size={16} strokeWidth={2.5}/>
-                        </ToolbarButton>
-                        <ToolbarButton active={textAlign === 'right'} onClick={() => setTextAlign('right')} title="Align Right">
-                            <AlignRight size={16} strokeWidth={2.5}/>
-                        </ToolbarButton>
-                     </div>
+                {/* Formatting Toolbar Pill - Desktop: Right, Mobile: Top */}
+                <div className="pointer-events-auto self-end sm:self-auto max-w-full">
+                     <div className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-3 flex items-center gap-3 lg:gap-4 shadow-sm select-none whitespace-nowrap">
+                         
+                         {/* Alignment */}
+                         <div className="flex items-center gap-1 shrink-0">
+                            <ToolbarButton active={textAlign === 'left'} onClick={() => setTextAlign('left')} title="Align Left">
+                                <AlignLeft size={16} strokeWidth={2.5}/>
+                            </ToolbarButton>
+                            <ToolbarButton active={textAlign === 'center'} onClick={() => setTextAlign('center')} title="Align Center">
+                                <AlignCenter size={16} strokeWidth={2.5}/>
+                            </ToolbarButton>
+                            <ToolbarButton active={textAlign === 'right'} onClick={() => setTextAlign('right')} title="Align Right">
+                                <AlignRight size={16} strokeWidth={2.5}/>
+                            </ToolbarButton>
+                         </div>
 
-                     <ToolbarDivider />
+                         <ToolbarDivider />
 
-                     {/* Font Size */}
-                     <NumberControl 
-                        value={fontSize}
-                        onChange={setFontSize}
-                        min={20}
-                        max={150}
-                        step={5}
-                        icon={Type}
-                        label="Font Size"
-                     />
+                         {/* Font Size */}
+                         <NumberControl 
+                            value={fontSize}
+                            onChange={setFontSize}
+                            min={20}
+                            max={150}
+                            step={5}
+                            icon={Type}
+                            label="Font Size"
+                         />
 
-                     <ToolbarDivider />
+                         <ToolbarDivider />
 
-                     {/* Letter Spacing */}
-                     <NumberControl 
-                        value={letterSpacing}
-                        onChange={setLetterSpacing}
-                        min={-50}
-                        max={200}
-                        step={5}
-                        icon={MoveHorizontal}
-                        label="Letter Spacing"
-                     />
+                         {/* Letter Spacing */}
+                         <NumberControl 
+                            value={letterSpacing}
+                            onChange={setLetterSpacing}
+                            min={-50}
+                            max={200}
+                            step={5}
+                            icon={MoveHorizontal}
+                            label="Letter Spacing"
+                         />
 
+                    </div>
                 </div>
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 lg:px-8 py-24 relative z-10 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 lg:px-8 py-28 relative z-10 scrollbar-thin">
                 <div 
                     className="w-full min-h-full flex flex-col text-black dark:text-white break-words transition-all duration-300 ease-out"
                     style={{ alignItems: textAlign === 'left' ? 'flex-start' : textAlign === 'right' ? 'flex-end' : 'center' }}
@@ -207,8 +211,8 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
             </div>
 
             {/* Floating Input Pill */}
-            <div className="absolute bottom-[24px] left-4 right-4 z-30 flex justify-center">
-                 <div className="bg-white dark:bg-neutral-800 rounded-[30px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden border border-transparent focus-within:border-gray-200 dark:focus-within:border-neutral-700 transition-colors">
+            <div className="absolute bottom-[24px] left-4 right-4 z-30 flex justify-center pointer-events-none">
+                 <div className="bg-white dark:bg-neutral-800 rounded-[30px] shadow-[0_8px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex items-center w-full max-w-[320px] h-[44px] overflow-hidden border border-transparent focus-within:border-gray-200 dark:focus-within:border-neutral-700 transition-colors pointer-events-auto">
                      <input
                         type="text"
                         value={text}
