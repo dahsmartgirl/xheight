@@ -170,8 +170,8 @@ const App: React.FC = () => {
   const handleExport = () => {
     centerAllGlyphs();
     const safeName = getExportName().replace(/[^a-z0-9]/gi, '_');
-    // Using default options for regular font
-    const fontBuffer = generateFont(safeName, fontMap, letterSpacing);
+    // Using default options for regular font, ignore preview letterSpacing (pass 0)
+    const fontBuffer = generateFont(safeName, fontMap, 0);
     downloadFile(fontBuffer, `${safeName}.ttf`, 'font/ttf');
     setIsExportModalOpen(false);
   };
@@ -179,7 +179,8 @@ const App: React.FC = () => {
   const handleExportFamily = async () => {
      centerAllGlyphs();
      const safeName = getExportName().replace(/[^a-z0-9]/gi, '_');
-     const zipBlob = await generateFontFamilyZip(safeName, fontMap, letterSpacing);
+     // Ignore preview letterSpacing (pass 0)
+     const zipBlob = await generateFontFamilyZip(safeName, fontMap, 0);
      
      const url = URL.createObjectURL(zipBlob);
      const a = document.createElement('a');
