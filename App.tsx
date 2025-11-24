@@ -210,9 +210,7 @@ const App: React.FC = () => {
             <div className="flex items-center select-none overflow-visible shrink-0">
                 <div className="overflow-visible flex items-center shrink-0">
                     <svg 
-                      width="83" 
-                      height="25" 
-                      viewBox="0 0 86 25" 
+                      viewBox="0 0 90 25" 
                       fill="none" 
                       xmlns="http://www.w3.org/2000/svg" 
                       className="w-auto h-[16px] lg:h-[20px] block overflow-visible"
@@ -230,7 +228,7 @@ const App: React.FC = () => {
             {/* Theme Switcher - Icon Only Toggle */}
             <button 
               onClick={toggleTheme}
-              className="flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-full text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors"
+              className="flex items-center justify-center w-8 h-8 lg:w-9 lg:h-9 rounded-full text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white"
               aria-label="Toggle theme"
             >
                 {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
@@ -239,7 +237,7 @@ const App: React.FC = () => {
             {/* Download Button */}
             <button 
                 onClick={() => setIsExportModalOpen(true)}
-                className="flex items-center gap-[6px] bg-[#14110F] dark:bg-white text-white dark:text-black px-3 py-1.5 lg:px-[16px] lg:py-[8px] rounded-[30px] transition-colors hover:bg-black dark:hover:bg-gray-200 overflow-visible shrink-0"
+                className="flex items-center gap-[6px] bg-[#14110F] dark:bg-white text-white dark:text-black px-3 py-1.5 lg:px-[16px] lg:py-[8px] rounded-[30px] hover:bg-black dark:hover:bg-gray-200 overflow-visible shrink-0"
             >
                 <div className="w-[14px] h-[14px] relative flex items-center justify-center">
                     <Download size={12} strokeWidth={2.5} />
@@ -269,7 +267,7 @@ const App: React.FC = () => {
                 <label className="text-[13px] font-medium text-black dark:text-white leading-tight">
                     Font name
                 </label>
-                <div className="h-[40px] w-full px-[16px] py-[8px] rounded-[30px] outline outline-[0.5px] outline-[#D9D9D9] dark:outline-neutral-800 flex items-center focus-within:outline-gray-400 dark:focus-within:outline-neutral-600 transition-all">
+                <div className="h-[40px] w-full px-[16px] py-[8px] rounded-[30px] outline outline-[0.5px] outline-[#D9D9D9] dark:outline-neutral-800 flex items-center focus-within:outline-gray-400 dark:focus-within:outline-neutral-600">
                      <input 
                         type="text" 
                         value={fontName}
@@ -288,7 +286,7 @@ const App: React.FC = () => {
                           <button
                             type="button"
                             onClick={handleReset}
-                            className="text-gray-400 hover:text-red-600 transition-colors p-2 relative z-50 cursor-pointer"
+                            className="text-gray-400 hover:text-red-600 p-2 relative z-50 cursor-pointer"
                             title="Reset All"
                             aria-label="Reset All Progress"
                           >
@@ -328,13 +326,13 @@ const App: React.FC = () => {
                  <div className="flex-1 sm:flex-none sm:w-[220px] h-[40px] p-[3px] bg-[#FAFAFA] dark:bg-neutral-900 rounded-[30px] flex relative shrink-0">
                       <button 
                          onClick={() => setViewMode('CANVAS')}
-                         className={`relative z-10 flex-1 h-[34px] rounded-[26px] flex items-center justify-center text-[13px] font-medium transition-all duration-200 ${viewMode === 'CANVAS' ? 'bg-white dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-400 dark:text-neutral-500'}`}
+                         className={`relative z-10 flex-1 h-[34px] rounded-[26px] flex items-center justify-center text-[13px] font-medium ${viewMode === 'CANVAS' ? 'bg-white dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-400 dark:text-neutral-500'}`}
                       >
                          Canvas
                       </button>
                       <button 
                          onClick={() => setViewMode('PREVIEW')}
-                         className={`relative z-10 flex-1 h-[34px] rounded-[26px] flex items-center justify-center text-[13px] font-medium transition-all duration-200 ${viewMode === 'PREVIEW' ? 'bg-white dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-400 dark:text-neutral-500'}`}
+                         className={`relative z-10 flex-1 h-[34px] rounded-[26px] flex items-center justify-center text-[13px] font-medium ${viewMode === 'PREVIEW' ? 'bg-white dark:bg-neutral-800 text-black dark:text-white shadow-sm' : 'text-gray-400 dark:text-neutral-500'}`}
                       >
                          Preview
                       </button>
@@ -342,7 +340,7 @@ const App: React.FC = () => {
 
                  {/* Progress Indicator */}
                  <div className="flex items-center gap-[12px] shrink-0">
-                      <div className="flex items-center gap-3 pr-2 pl-1.5 py-1.5 rounded-full border border-transparent transition-all">
+                      <div className="flex items-center gap-3 pr-2 pl-1.5 py-1.5 rounded-full border border-transparent">
                            <div className="relative w-[28px] h-[28px] rounded-full flex items-center justify-center shadow-inner bg-white dark:bg-neutral-800">
                                <div 
                                  className="absolute inset-0 rounded-full"
@@ -375,7 +373,7 @@ const App: React.FC = () => {
                                 <button 
                                     onClick={handlePrevChar}
                                     disabled={selectedCharIndex === 0}
-                                    className="w-[40px] h-[40px] lg:w-[48px] lg:h-[48px] rounded-full bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center pointer-events-auto hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                                    className="w-[40px] h-[40px] lg:w-[48px] lg:h-[48px] rounded-full bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center pointer-events-auto hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                                 >
                                     <ChevronLeft size={20} className="text-black dark:text-white" strokeWidth={2.5} />
                                 </button>
@@ -383,7 +381,7 @@ const App: React.FC = () => {
                                 <button 
                                     onClick={handleNextChar}
                                     disabled={selectedCharIndex === CHAR_SET.length - 1}
-                                    className="w-[40px] h-[40px] lg:w-[48px] lg:h-[48px] rounded-full bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center pointer-events-auto hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                                    className="w-[40px] h-[40px] lg:w-[48px] lg:h-[48px] rounded-full bg-white dark:bg-neutral-800 shadow-lg flex items-center justify-center pointer-events-auto hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                                 >
                                     <ChevronRight size={20} className="text-black dark:text-white" strokeWidth={2.5} />
                                 </button>
@@ -411,7 +409,7 @@ const App: React.FC = () => {
               <div className="relative bg-white dark:bg-neutral-900 rounded-[20px] border border-[#D9D9D9] dark:border-neutral-800 w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
                   <button 
                     onClick={() => setIsExportModalOpen(false)}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                    className="absolute top-4 right-4 text-gray-400 hover:text-black dark:hover:text-white"
                   >
                       <X size={16} />
                   </button>
@@ -432,14 +430,14 @@ const App: React.FC = () => {
 
                       <button 
                         onClick={handleExport}
-                        className="w-full bg-black dark:bg-white text-white dark:text-black h-9 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+                        className="w-full bg-black dark:bg-white text-white dark:text-black h-9 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
                       >
                           Download Regular
                       </button>
 
                       <button 
                         onClick={handleExportFamily}
-                        className="w-full bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white h-9 rounded-lg text-sm font-medium hover:border-gray-400 dark:hover:border-neutral-500 transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white h-9 rounded-lg text-sm font-medium hover:border-gray-400 dark:hover:border-neutral-500 flex items-center justify-center gap-2"
                       >
                           <FileArchive size={14} />
                           Download Font Family (ZIP)

@@ -223,7 +223,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes, 
            <button 
              onClick={handleUndo} 
              disabled={strokes.length === 0}
-             className="text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors disabled:opacity-30"
+             className="text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white disabled:opacity-30"
            >
              <Undo size={16} strokeWidth={2} />
            </button>
@@ -231,7 +231,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes, 
            <button 
              onClick={handleRedo} 
              disabled={redoStack.length === 0}
-             className="text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors disabled:opacity-30"
+             className="text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white disabled:opacity-30"
            >
              <Redo size={16} strokeWidth={2} />
            </button>
@@ -241,14 +241,14 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes, 
            <button 
              onClick={clearCanvas} 
              disabled={strokes.length === 0}
-             className="text-gray-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-30"
+             className="text-gray-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-30"
            >
              <Trash2 size={16} strokeWidth={2} />
            </button>
            
            <button 
              onClick={() => setShowGuides(!showGuides)} 
-             className={`${showGuides ? 'text-black dark:text-white' : 'text-gray-400 dark:text-neutral-500'} hover:text-black dark:hover:text-white transition-colors`}
+             className={`${showGuides ? 'text-black dark:text-white' : 'text-gray-400 dark:text-neutral-500'} hover:text-black dark:hover:text-white`}
            >
              <Grid3x3 size={16} strokeWidth={2} />
            </button>

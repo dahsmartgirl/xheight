@@ -46,7 +46,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                 {/* Randomize Button */}
                 <button 
                     onClick={async () => setText(await generateSampleText())}
-                    className="pointer-events-auto bg-white dark:bg-neutral-800 rounded-[26px] h-[36px] px-[12px] lg:px-[14px] flex items-center gap-[6px] shadow-sm hover:shadow-md transition-all border border-transparent active:scale-95 shrink-0"
+                    className="pointer-events-auto bg-white dark:bg-neutral-800 rounded-[26px] h-[36px] px-[12px] lg:px-[14px] flex items-center gap-[6px] shadow-sm hover:shadow-md border border-transparent shrink-0"
                 >
                     <RotateCcw size={14} className="text-[#ED0C14]" strokeWidth={2.5} />
                     <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white hidden sm:inline">Randomize</span>
@@ -58,19 +58,19 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                      <div className="flex items-center gap-1 shrink-0">
                         <button 
                             onClick={() => setTextAlign('left')} 
-                            className={`p-1 rounded-full transition-colors ${textAlign === 'left' ? 'text-black dark:text-white bg-gray-100 dark:bg-neutral-700' : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}
+                            className={`p-1 rounded-full ${textAlign === 'left' ? 'text-black dark:text-white bg-gray-100 dark:bg-neutral-700' : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}
                         >
                             <AlignLeft size={14} strokeWidth={2.5}/>
                         </button>
                         <button 
                             onClick={() => setTextAlign('center')} 
-                            className={`p-1 rounded-full transition-colors ${textAlign === 'center' ? 'text-black dark:text-white bg-gray-100 dark:bg-neutral-700' : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}
+                            className={`p-1 rounded-full ${textAlign === 'center' ? 'text-black dark:text-white bg-gray-100 dark:bg-neutral-700' : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}
                         >
                             <AlignCenter size={14} strokeWidth={2.5}/>
                         </button>
                         <button 
                             onClick={() => setTextAlign('right')} 
-                            className={`p-1 rounded-full transition-colors ${textAlign === 'right' ? 'text-black dark:text-white bg-gray-100 dark:bg-neutral-700' : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}
+                            className={`p-1 rounded-full ${textAlign === 'right' ? 'text-black dark:text-white bg-gray-100 dark:bg-neutral-700' : 'text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white'}`}
                         >
                             <AlignRight size={14} strokeWidth={2.5}/>
                         </button>
