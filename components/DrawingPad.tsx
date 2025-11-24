@@ -213,7 +213,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes, 
         />
 
         {/* Draw "C" Pill */}
-        <div className="absolute top-[12px] left-[16px] z-20 bg-white dark:bg-neutral-800 rounded-[26px] px-[14px] py-[6px] flex items-center gap-[4px] shadow-sm">
+        <div className="absolute top-[12px] left-[16px] z-20 bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-[14px] flex items-center gap-[4px] shadow-sm">
             <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white">Draw</span>
             <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-[#ED0C14]">“{char}”</span>
         </div>

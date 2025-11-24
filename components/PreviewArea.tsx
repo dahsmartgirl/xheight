@@ -117,9 +117,9 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                 <div className="pointer-events-auto">
                     <button 
                         onClick={async () => setText(await generateSampleText())}
-                        className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-[10px] sm:px-[14px] flex items-center gap-[6px] shadow-sm"
+                        className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-3 sm:px-[14px] flex items-center gap-[6px] shadow-sm"
                     >
-                        <RotateCcw size={14} className="text-[#ED0C14]" strokeWidth={2.5} />
+                        <RotateCcw size={16} className="text-[#ED0C14]" strokeWidth={2.5} />
                         {/* 
                             Text Visibility Logic:
                             - < 450px: Visible (Stacked)
