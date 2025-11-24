@@ -51,7 +51,7 @@ const NumberControl = ({ value, onChange, min, max, step, icon: Icon, label }: a
   };
 
   return (
-    <div className="flex items-center gap-1 min-[450px]:gap-2 shrink-0" title={label}>
+    <div className="flex items-center gap-0.5 sm:gap-2 shrink-0" title={label}>
       {Icon && <div className="text-gray-400 dark:text-neutral-500 ml-1 hidden sm:block"><Icon size={16} strokeWidth={2} /></div>}
       <div className="flex items-center">
           <button
@@ -110,66 +110,69 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
             {/* Background Grid Pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>
 
-            {/* Top Controls Container - Responsive Stacking Logic */}
-            {/* Tiny (<450px): Stacked (flex-col-reverse), Left Aligned. */}
-            {/* Normal Mobile (450px+): Row, Justify Between. */}
-            <div className="absolute top-3 inset-x-4 z-20 flex flex-col-reverse gap-3 min-[450px]:flex-row min-[450px]:justify-between min-[450px]:items-start pointer-events-none">
+            {/* Top Controls Container */}
+            <div className="absolute top-3 left-4 right-4 z-20 flex flex-col-reverse gap-3 items-start min-[450px]:flex-row min-[450px]:justify-between min-[450px]:items-center pointer-events-none">
                 
                 {/* Randomize Pill */}
-                {/* Logic: Text visible on tiny screens (<450px), hidden on mid-sized mobile, visible again on desktop (sm+) */}
-                <div className="pointer-events-auto self-start">
+                <div className="pointer-events-auto">
                     <button 
                         onClick={async () => setText(await generateSampleText())}
-                        className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-[14px] flex items-center gap-[6px] shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-700 group"
+                        className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-[10px] sm:px-[14px] flex items-center gap-[6px] shadow-sm"
                     >
                         <RotateCcw size={14} className="text-[#ED0C14]" strokeWidth={2.5} />
+                        {/* 
+                            Text Visibility Logic:
+                            - < 450px: Visible (Stacked)
+                            - 450px - 640px: Hidden (Row, constrained space)
+                            - >= 640px: Visible (Row, ample space)
+                        */}
                         <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white block min-[450px]:hidden sm:block">Randomize</span>
                     </button>
                 </div>
 
                 {/* Formatting Toolbar Pill */}
-                <div className="pointer-events-auto self-start min-[450px]:self-auto max-w-full">
-                     <div className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-2 min-[450px]:px-3 flex items-center gap-1 min-[450px]:gap-3 lg:gap-4 shadow-sm select-none whitespace-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden">
-                         
-                         {/* Alignment */}
-                         <div className="flex items-center gap-0.5 min-[450px]:gap-1 shrink-0">
-                            <ToolbarButton active={textAlign === 'left'} onClick={() => setTextAlign('left')} title="Align Left">
-                                <AlignLeft size={16} strokeWidth={2.5}/>
-                            </ToolbarButton>
-                            <ToolbarButton active={textAlign === 'center'} onClick={() => setTextAlign('center')} title="Align Center">
-                                <AlignCenter size={16} strokeWidth={2.5}/>
-                            </ToolbarButton>
-                            <ToolbarButton active={textAlign === 'right'} onClick={() => setTextAlign('right')} title="Align Right">
-                                <AlignRight size={16} strokeWidth={2.5}/>
-                            </ToolbarButton>
-                         </div>
+                <div className="pointer-events-auto max-w-full">
+                     <div className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] flex items-center shadow-sm select-none overflow-hidden">
+                         <div className="px-3 flex items-center gap-1 sm:gap-3 lg:gap-4 overflow-x-auto [&::-webkit-scrollbar]:hidden h-full">
+                             {/* Alignment */}
+                             <div className="flex items-center gap-0.5 min-[450px]:gap-1 shrink-0">
+                                <ToolbarButton active={textAlign === 'left'} onClick={() => setTextAlign('left')} title="Align Left">
+                                    <AlignLeft size={16} strokeWidth={2.5}/>
+                                </ToolbarButton>
+                                <ToolbarButton active={textAlign === 'center'} onClick={() => setTextAlign('center')} title="Align Center">
+                                    <AlignCenter size={16} strokeWidth={2.5}/>
+                                </ToolbarButton>
+                                <ToolbarButton active={textAlign === 'right'} onClick={() => setTextAlign('right')} title="Align Right">
+                                    <AlignRight size={16} strokeWidth={2.5}/>
+                                </ToolbarButton>
+                             </div>
 
-                         <ToolbarDivider />
+                             <ToolbarDivider />
 
-                         {/* Font Size */}
-                         <NumberControl 
-                            value={fontSize}
-                            onChange={setFontSize}
-                            min={20}
-                            max={150}
-                            step={5}
-                            icon={Type}
-                            label="Font Size"
-                         />
+                             {/* Font Size */}
+                             <NumberControl 
+                                value={fontSize}
+                                onChange={setFontSize}
+                                min={20}
+                                max={150}
+                                step={5}
+                                icon={Type}
+                                label="Font Size"
+                             />
 
-                         <ToolbarDivider />
+                             <ToolbarDivider />
 
-                         {/* Letter Spacing */}
-                         <NumberControl 
-                            value={letterSpacing}
-                            onChange={setLetterSpacing}
-                            min={-50}
-                            max={200}
-                            step={5}
-                            icon={MoveHorizontal}
-                            label="Letter Spacing"
-                         />
-
+                             {/* Letter Spacing */}
+                             <NumberControl 
+                                value={letterSpacing}
+                                onChange={setLetterSpacing}
+                                min={-50}
+                                max={200}
+                                step={5}
+                                icon={MoveHorizontal}
+                                label="Letter Spacing"
+                             />
+                        </div>
                     </div>
                 </div>
             </div>
