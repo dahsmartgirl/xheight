@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CHAR_SET, FontMap } from '../types';
 import { strokesToPath } from '../utils/svgHelpers';
@@ -21,17 +22,16 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
         
         if (isSelected) {
             // Selected: Red Theme + Shadow + Z-Index
-            cardStyles = 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14] shadow-sm z-10';
+            cardStyles = 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14] shadow-sm z-10 bg-white dark:bg-neutral-900';
         } else if (hasData) {
             // Filled but not selected: Red Theme (Active) but no Shadow
-            cardStyles = 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14] hover:z-10';
+            cardStyles = 'border-red-brand text-red-brand outline-[0.5px] outline outline-[#ED0C14] hover:z-10 bg-white dark:bg-neutral-900';
         } else {
             // Empty: Gray Theme
-            cardStyles = 'border-gray-brand text-gray-brand outline-[0.5px] outline outline-[#D9D9D9] hover:border-gray-400 hover:z-10';
+            cardStyles = 'border-gray-200 dark:border-neutral-800 text-gray-300 dark:text-neutral-600 outline-[0.5px] outline outline-gray-200 dark:outline-neutral-800 hover:border-gray-400 dark:hover:border-neutral-600 hover:z-10 bg-white dark:bg-neutral-900';
         }
 
         // Calculate dynamic stroke width for consistent visual weight
-        // Fallback to 300/12 if canvasWidth is missing
         const canvasW = data?.canvasWidth || 300;
         // ~4% of width looks good for a thumbnail representation
         const normalizedStrokeWidth = canvasW * 0.04; 
@@ -52,20 +52,21 @@ const CharacterGrid: React.FC<CharacterGridProps> = ({ selectedChar, onSelect, f
                     <path 
                        d={strokesToPath(data.strokes, 1, 0, 0)} 
                        fill="none" 
-                       stroke="#000000" 
+                       stroke="currentColor" 
                        strokeWidth={normalizedStrokeWidth} 
                        strokeLinecap="round" 
                        strokeLinejoin="round"
+                       className="text-black dark:text-white"
                     />
                  </svg>
                ) : (
-                  <div className="w-full h-0 border-b border-[#F2F2F2] mt-[20%]"></div>
+                  <div className="w-full h-0 border-b border-[#F2F2F2] dark:border-neutral-800 mt-[20%]"></div>
                )}
             </div>
 
-            {/* Character Label (Bottom) - Scaled: 40px -> 28px */}
+            {/* Character Label (Bottom) */}
             <div className="flex-1 flex items-center justify-center pb-2">
-                <span className="text-[24px] lg:text-[28px] font-normal leading-none font-['Inter']">
+                <span className={`text-[24px] lg:text-[28px] font-normal leading-none font-['Inter'] ${hasData || isSelected ? '' : 'text-gray-300 dark:text-neutral-700'}`}>
                     {char}
                 </span>
             </div>

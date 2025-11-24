@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Stroke, Point } from '../types';
 import { Trash2, Undo, Redo, Grid3x3 } from 'lucide-react';
@@ -6,9 +7,10 @@ interface DrawingPadProps {
   char: string;
   onSave: (strokes: Stroke[], width: number, height: number) => void;
   existingStrokes?: Stroke[];
+  darkMode: boolean;
 }
 
-const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }) => {
+const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes, darkMode }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -37,7 +39,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
       const h = canvas.height;
       // Simple crosshair
       ctx.beginPath();
-      ctx.strokeStyle = '#e5e7eb';
+      ctx.strokeStyle = darkMode ? '#404040' : '#e5e7eb';
       ctx.lineWidth = 1;
       ctx.moveTo(w / 2, 0);
       ctx.lineTo(w / 2, h);
@@ -66,8 +68,8 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
 
     // --- Active Ink Layer ---
     ctx.lineWidth = 6; 
-    ctx.strokeStyle = '#171717'; // Neutral 900
-    ctx.fillStyle = '#171717';
+    ctx.strokeStyle = darkMode ? '#ffffff' : '#171717'; 
+    ctx.fillStyle = darkMode ? '#ffffff' : '#171717';
 
     // Existing Strokes
     strokes.forEach(stroke => drawPoints(stroke.points, ctx));
@@ -75,7 +77,7 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
     // Current Stroke
     drawPoints(currentStroke, ctx);
 
-  }, [strokes, currentStroke, showGuides]);
+  }, [strokes, currentStroke, showGuides, darkMode]);
 
   useEffect(() => {
     draw();
@@ -183,15 +185,15 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
       {/* Canvas Container */}
       <div 
         ref={containerRef}
-        className="relative flex-1 w-full bg-[#FAFAFA] rounded-[20px] overflow-hidden cursor-crosshair touch-none border border-transparent"
+        className="relative flex-1 w-full bg-[#FAFAFA] dark:bg-neutral-900 rounded-[20px] overflow-hidden cursor-crosshair touch-none border border-transparent transition-colors duration-200"
       >
         {/* Background Grid Pattern (Subtle) */}
-        {showGuides && <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>}
+        {showGuides && <div className="absolute inset-0 bg-[linear-gradient(to_right,#f3f4f6_1px,transparent_1px),linear-gradient(to_bottom,#f3f4f6_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none"></div>}
 
-        {/* Faint Background Char - Scaled: 250px -> 160px */}
+        {/* Faint Background Char */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
              <span 
-               className="font-['Inter'] font-normal text-[#F2F2F2] text-[120px] lg:text-[160px]" 
+               className="font-['Inter'] font-normal text-[#F2F2F2] dark:text-neutral-800 text-[120px] lg:text-[160px] transition-colors" 
                style={{ lineHeight: '1' }}
              >
                 {char}
@@ -210,18 +212,18 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
           className="relative z-10 w-full h-full block"
         />
 
-        {/* Draw "C" Pill - Scaled Position and Font */}
-        <div className="absolute top-[12px] left-[16px] z-20 bg-white rounded-[26px] px-[14px] py-[6px] flex items-center gap-[4px] shadow-sm">
-            <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black">Draw</span>
+        {/* Draw "C" Pill */}
+        <div className="absolute top-[12px] left-[16px] z-20 bg-white dark:bg-neutral-800 rounded-[26px] px-[14px] py-[6px] flex items-center gap-[4px] shadow-sm transition-colors">
+            <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white">Draw</span>
             <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-[#ED0C14]">“{char}”</span>
         </div>
 
-        {/* Floating Toolbar Pill - Scaled Position and Height */}
-        <div className="absolute top-[12px] right-[16px] z-20 bg-white rounded-[26px] h-[32px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm">
+        {/* Floating Toolbar Pill */}
+        <div className="absolute top-[12px] right-[16px] z-20 bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-3 lg:px-4 flex items-center gap-3 lg:gap-4 shadow-sm transition-colors">
            <button 
              onClick={handleUndo} 
              disabled={strokes.length === 0}
-             className="text-gray-400 hover:text-black transition-colors disabled:opacity-30"
+             className="text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors disabled:opacity-30"
            >
              <Undo size={16} strokeWidth={2} />
            </button>
@@ -229,24 +231,24 @@ const DrawingPad: React.FC<DrawingPadProps> = ({ char, onSave, existingStrokes }
            <button 
              onClick={handleRedo} 
              disabled={redoStack.length === 0}
-             className="text-gray-400 hover:text-black transition-colors disabled:opacity-30"
+             className="text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors disabled:opacity-30"
            >
              <Redo size={16} strokeWidth={2} />
            </button>
 
-           <div className="w-[1px] h-[14px] bg-[#D9D9D9]"></div>
+           <div className="w-[1px] h-[14px] bg-[#D9D9D9] dark:bg-neutral-700"></div>
 
            <button 
              onClick={clearCanvas} 
              disabled={strokes.length === 0}
-             className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-30"
+             className="text-gray-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-30"
            >
              <Trash2 size={16} strokeWidth={2} />
            </button>
            
            <button 
              onClick={() => setShowGuides(!showGuides)} 
-             className={`${showGuides ? 'text-black' : 'text-gray-400'} hover:text-black transition-colors`}
+             className={`${showGuides ? 'text-black dark:text-white' : 'text-gray-400 dark:text-neutral-500'} hover:text-black dark:hover:text-white transition-colors`}
            >
              <Grid3x3 size={16} strokeWidth={2} />
            </button>

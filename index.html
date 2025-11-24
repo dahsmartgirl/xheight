@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>x-height</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              neutral: {
+                950: '#0a0a0a',
+              }
+            }
+          }
+        }
+      }
+    </script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -17,8 +31,6 @@
         font-family: var(--font-sans);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        background-color: #ffffff;
-        color: #171717;
         height: 100vh;
         overflow: hidden;
       }
@@ -35,15 +47,21 @@
         background: #e5e5e5;
         border-radius: 3px;
       }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #404040;
+      }
       ::-webkit-scrollbar-thumb:hover {
         background: #d4d4d4;
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #525252;
       }
 
       canvas {
         touch-action: none;
       }
       
-      /* Utilities for specific design specs */
+      /* Utilities */
       .border-thin {
         border-width: 0.5px;
       }
@@ -59,15 +77,6 @@
       .border-red-brand {
         border-color: #ED0C14;
       }
-
-      .text-gray-brand {
-        color: #D9D9D9;
-      }
-      
-      .border-gray-brand {
-        border-color: #D9D9D9;
-      }
-
     </style>
   <script type="importmap">
 {
@@ -85,7 +94,7 @@
 <path d="M79.5578 18.0835C78.56 18.0835 77.8034 17.8152 77.2879 17.2787C76.7724 16.7421 76.5147 15.9624 76.5147 14.9396V9.12978C76.5147 8.99564 76.4565 8.89504 76.3401 8.82797C76.2403 8.7609 76.0324 8.71898 75.7165 8.70221H75.4421C75.3423 8.70221 75.2592 8.62676 75.1927 8.47585C75.1261 8.30818 75.0929 8.14889 75.0929 7.99799C75.0929 7.96445 75.1012 7.92253 75.1178 7.87223C75.1511 7.80516 75.1927 7.76325 75.2425 7.74648C75.625 7.57881 76.0158 7.35245 76.4149 7.0674C76.814 6.76559C77.1881 6.46378 77.5374 6.16197C77.8866 5.84339 78.1776 5.57512 78.4104 5.35714C78.5268 5.27331 78.6182 5.19785 78.6848 5.13078C78.7679 5.06372 78.8594 5.03018 78.9591 5.03018C79.0922 5.03018 79.1919 5.06372 79.2585 5.13078C79.3416 5.18109 79.3665 5.29007 79.3333 5.45775L79.1836 6.84105C79.167 7.04225 79.2086 7.17639 79.3083 7.24346C79.4248 7.31053 79.5827 7.34406 79.7823 7.34406H82.7256C82.7755 7.34406 82.8254 7.40275 82.8753 7.52012C82.9252 7.63749 82.9501 7.75486 82.9501 7.87223C82.9501 8.09021 82.9169 8.29142 82.8503 8.47585C82.8005 8.6603 82.7339 8.75252 82.6508 8.75252H80.2811C79.8987 8.75252 79.6326 8.79443 79.483 8.87827C79.3499 8.96211 79.2834 9.13816 79.2834 9.40644V14.2354C79.2834 14.9732 79.4248 15.5349 79.7074 15.9205C79.9901 16.2894 80.3892 16.4738 80.9047 16.4738C81.3703 16.4738 81.7196 16.4319 81.9524 16.3481C82.2018 16.2643 82.4263 16.1636 82.6258 16.0463C82.6757 16.0127 82.7173 15.996 82.7506 15.996C82.8337 15.996 82.8919 16.0463 82.9252 16.1469C82.9751 16.2475 83 16.3565 83 16.4738C83 16.5577 82.8337 16.7337 82.5011 17.002C82.1852 17.2703 81.7611 17.5134 81.229 17.7314C80.7135 17.9661 80.1564 18.0835 79.5578 18.0835Z" fill="black"/>
 </svg>' />
 </head>
-  <body class="antialiased selection:bg-red-100 selection:text-red-900">
+  <body class="antialiased selection:bg-red-100 selection:text-red-900 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-200">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
   </body>
