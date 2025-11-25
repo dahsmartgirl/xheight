@@ -234,7 +234,13 @@ const App: React.FC = () => {
   const progressPercent = Math.round((completedCount/CHAR_SET.length)*100);
 
   if (appView === 'LANDING') {
-      return <LandingPage onEnterApp={() => setAppView('APP')} />;
+      return (
+        <LandingPage 
+          onEnterApp={() => setAppView('APP')} 
+          toggleTheme={toggleTheme}
+          theme={theme}
+        />
+      );
   }
 
   return (
