@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ArrowRight, Moon, Sun } from 'lucide-react';
 
 // --- DATA & ASSETS ---
@@ -81,15 +81,26 @@ const SCRIBBLE_ASSETS: ScribbleAsset[] = [
   { id: 't_123', type: 'text', content: '123', fontFamily: 'Patrick Hand' },
   { id: 't_ink', type: 'text', content: 'ink', fontFamily: 'Caveat' },
   { id: 't_draw', type: 'text', content: 'draw', fontFamily: 'Architects Daughter' },
+  { id: 't_create', type: 'text', content: 'create', fontFamily: 'Indie Flower' },
+  { id: 't_magic', type: 'text', content: 'magic', fontFamily: 'Kalam' },
+  { id: 't_design', type: 'text', content: 'design', fontFamily: 'Caveat' },
+  { id: 't_cool2', type: 'text', content: 'so cool', fontFamily: 'Patrick Hand' },
+  { id: 't_letters', type: 'text', content: 'letters', fontFamily: 'Architects Daughter' },
+  { id: 't_pencil', type: 'text', content: 'pencil', fontFamily: 'Shadows Into Light' },
+  { id: 't_fun', type: 'text', content: 'fun!', fontFamily: 'Gloria Hallelujah' },
+  { id: 't_dream', type: 'text', content: 'dream', fontFamily: 'Reenie Beanie' },
+  { id: 't_notes', type: 'text', content: 'notes', fontFamily: 'Covered By Your Grace' },
+  { id: 't_write', type: 'text', content: 'write', fontFamily: 'Rock Salt' },
 ];
 
 interface ActiveScribble {
-  uid: number;
+  uid: string;
   asset: ScribbleAsset;
   x: number; // Percent
   y: number; // Percent
   rotation: number;
   scale: number;
+  delayOffset: number; // For initial cycle offset
 }
 
 // --- COMPONENTS ---
@@ -97,29 +108,39 @@ interface ActiveScribble {
 const ScribbleItem: React.FC<{
   data: ActiveScribble;
   color: string;
-  onComplete: (uid: number) => void;
-}> = ({ data, color, onComplete }) => {
-  const [stage, setStage] = useState<'drawing' | 'idle' | 'erasing'>('drawing');
+}> = ({ data, color }) => {
+  const [stage, setStage] = useState<'drawing' | 'drawn' | 'erasing' | 'erased'>('drawn');
   
-  // Lifecycle timings (randomized slightly for natural feel)
+  // Random durations for natural feel
   const drawDuration = useRef(1000 + Math.random() * 1000); 
-  const idleDuration = useRef(3000 + Math.random() * 2000); 
   const eraseDuration = useRef(800 + Math.random() * 500);
+  const visibleDuration = useRef(5000 + Math.random() * 8000); // Stay visible longer
+  const hiddenDuration = useRef(2000 + Math.random() * 4000); // Stay hidden before redrawing
 
   useEffect(() => {
-    // 1. Start Idle
-    const t1 = setTimeout(() => setStage('idle'), drawDuration.current);
-    // 2. Start Erase
-    const t2 = setTimeout(() => setStage('erasing'), drawDuration.current + idleDuration.current);
-    // 3. Complete
-    const t3 = setTimeout(() => onComplete(data.uid), drawDuration.current + idleDuration.current + eraseDuration.current);
+    let timeout: ReturnType<typeof setTimeout>;
 
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
+    const cycle = () => {
+        if (stage === 'drawn') {
+            timeout = setTimeout(() => setStage('erasing'), visibleDuration.current);
+        } else if (stage === 'erasing') {
+            timeout = setTimeout(() => setStage('erased'), eraseDuration.current);
+        } else if (stage === 'erased') {
+            timeout = setTimeout(() => setStage('drawing'), hiddenDuration.current);
+        } else if (stage === 'drawing') {
+            timeout = setTimeout(() => setStage('drawn'), drawDuration.current);
+        }
     };
-  }, [data.uid, onComplete]);
+
+    // Initial delay to desynchronize everything if starting from 'drawn'
+    if (stage === 'drawn' && data.delayOffset > 0) {
+        timeout = setTimeout(() => setStage('erasing'), data.delayOffset);
+    } else {
+        cycle();
+    }
+
+    return () => clearTimeout(timeout);
+  }, [stage, data.delayOffset]);
 
   const styleBase: React.CSSProperties = {
     position: 'absolute',
@@ -128,7 +149,7 @@ const ScribbleItem: React.FC<{
     transform: `translate(-50%, -50%) rotate(${data.rotation}deg) scale(${data.scale})`,
     pointerEvents: 'none',
     color: color,
-    opacity: 0.85, // Slightly higher opacity for visibility
+    opacity: 0.15, // Reduced Opacity as requested
     zIndex: 1,
   };
 
@@ -153,13 +174,14 @@ const ScribbleItem: React.FC<{
              pathLength={1}
              style={{
                 strokeDasharray: 1,
-                strokeDashoffset: stage === 'drawing' ? 1 : 0,
+                strokeDashoffset: stage === 'drawing' ? 1 : stage === 'erasing' ? 1 : 0,
+                // When 'erasing', we want it to go from 0 to 1. When 'drawing', 1 to 0.
+                // We handle direction via CSS transitions logic below
                 transition: stage === 'drawing' 
                    ? `stroke-dashoffset ${drawDuration.current}ms ease-out` 
                    : stage === 'erasing' 
                    ? `stroke-dashoffset ${eraseDuration.current}ms ease-in` 
                    : 'none',
-                opacity: stage === 'erasing' ? 0.2 : 1 // Fade out during erase too
              }}
           />
         </svg>
@@ -172,99 +194,98 @@ const ScribbleItem: React.FC<{
             <div
                style={{
                   fontFamily: data.asset.fontFamily,
-                  fontSize: '28px',
+                  fontSize: '24px',
                   fontWeight: 500,
                   // Clip path wipe effect
-                  clipPath: stage === 'drawing' ? 'inset(0 100% 0 0)' : stage === 'erasing' ? 'inset(0 0 0 100%)' : 'inset(0 0 0 0)',
-                  transition: `clipPath ${stage === 'drawing' ? drawDuration.current : eraseDuration.current}ms linear`,
+                  clipPath: stage === 'drawing' || stage === 'drawn' 
+                      ? 'inset(0 0 0 0)' 
+                      : 'inset(0 0 0 100%)', // Hidden
+                  
+                  // For erase/draw animation, we transition the clipPath
+                  // However, clipPath inset(0 100% 0 0) means fully hidden from right.
+                  // drawing: inset(0 100% 0 0) -> inset(0 0 0 0)
+                  // erasing: inset(0 0 0 0) -> inset(0 0 0 100%)
                }}
+               className={
+                   stage === 'drawing' ? 'animate-wipe-in' : stage === 'erasing' ? 'animate-wipe-out' : ''
+               }
             >
                 {data.asset.content}
             </div>
+            {/* Inline styles for clip path transition weren't reliable for "erasing" vs "drawing" reversal, 
+                so we use css animations or just simple state flipping if CSS is complex. 
+                Let's simplify to direct style manipulation */}
+            <style>{`
+                .animate-wipe-in {
+                    animation: wipeIn ${drawDuration.current}ms linear forwards;
+                }
+                .animate-wipe-out {
+                    animation: wipeOut ${eraseDuration.current}ms linear forwards;
+                }
+                @keyframes wipeIn {
+                    from { clip-path: inset(0 100% 0 0); }
+                    to { clip-path: inset(0 0 0 0); }
+                }
+                @keyframes wipeOut {
+                    from { clip-path: inset(0 0 0 0); }
+                    to { clip-path: inset(0 0 0 100%); }
+                }
+            `}</style>
         </div>
     );
   }
 };
 
 const ScribbleManager: React.FC<{ theme: 'light' | 'dark' }> = ({ theme }) => {
-    const [scribbles, setScribbles] = useState<ActiveScribble[]>([]);
-    const scribbleColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.45)'; // Darker for pencil look
-    const MAX_SCRIBBLES = 20;
+    const scribbleColor = theme === 'dark' ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)'; 
 
-    const spawnScribble = useCallback(() => {
-         setScribbles(prev => {
-             if (prev.length >= MAX_SCRIBBLES) return prev; 
+    // Generate scribbles ONLY ONCE
+    const scribbles = useMemo(() => {
+        const items: ActiveScribble[] = [];
+        
+        // Increased Grid size for better distribution
+        const cols = 8;
+        const rows = 12;
+        
+        // Define Safe Zone (Center) where text is
+        // Coordinates approx 20% to 80% width, 30% to 70% height
+        const safeZoneColMin = 2;
+        const safeZoneColMax = 5;
+        const safeZoneRowMin = 4;
+        const safeZoneRowMax = 8;
 
-             // Pick random asset
-             const asset = SCRIBBLE_ASSETS[Math.floor(Math.random() * SCRIBBLE_ASSETS.length)];
-             
-             // Weighted random zones to favor edges and corners more heavily
-             // 0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight, 4=LeftEdge, 5=RightEdge, 6=TopEdge, 7=BottomEdge
-             const zone = Math.floor(Math.random() * 8);
-             let x = 0, y = 0;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                // Check if in safe zone
+                if (c >= safeZoneColMin && c <= safeZoneColMax && r >= safeZoneRowMin && r <= safeZoneRowMax) {
+                    continue;
+                }
 
-             const padding = 5; // % padding from edge
+                // Randomly decide to place a scribble here or not (density control)
+                // Reduced threshold for more items
+                if (Math.random() > 0.5) continue;
 
-             switch(zone) {
-                case 0: // Top Left
-                   x = Math.random() * 30 + padding;
-                   y = Math.random() * 30 + padding;
-                   break;
-                case 1: // Top Right
-                   x = 70 + Math.random() * 25;
-                   y = Math.random() * 30 + padding;
-                   break;
-                case 2: // Bottom Left
-                   x = Math.random() * 30 + padding;
-                   y = 70 + Math.random() * 25;
-                   break;
-                case 3: // Bottom Right
-                   x = 70 + Math.random() * 25;
-                   y = 70 + Math.random() * 25;
-                   break;
-                case 4: // Left Edge
-                   x = Math.random() * 15 + padding;
-                   y = Math.random() * 80 + 10;
-                   break;
-                case 5: // Right Edge
-                   x = 85 + Math.random() * 10;
-                   y = Math.random() * 80 + 10;
-                   break;
-                case 6: // Top Edge
-                   x = Math.random() * 80 + 10;
-                   y = Math.random() * 15 + padding;
-                   break;
-                case 7: // Bottom Edge
-                   x = Math.random() * 80 + 10;
-                   y = 85 + Math.random() * 10;
-                   break;
-             }
-
-             const newScribble: ActiveScribble = {
-                 uid: Date.now() + Math.random(),
-                 asset,
-                 x,
-                 y,
-                 rotation: (Math.random() * 60) - 30, // -30 to 30 deg
-                 scale: 0.7 + Math.random() * 0.5 // 0.7 to 1.2
-             };
-
-             return [...prev, newScribble];
-         });
+                const asset = SCRIBBLE_ASSETS[Math.floor(Math.random() * SCRIBBLE_ASSETS.length)];
+                
+                // Jitter within the cell
+                const cellW = 100 / cols;
+                const cellH = 100 / rows;
+                const jitterX = (Math.random() * cellW * 0.6);
+                const jitterY = (Math.random() * cellH * 0.6);
+                
+                items.push({
+                    uid: `scribble-${r}-${c}`,
+                    asset,
+                    x: (c * cellW) + (cellW/2) - (cellW * 0.3) + jitterX,
+                    y: (r * cellH) + (cellH/2) - (cellH * 0.3) + jitterY,
+                    rotation: (Math.random() * 90) - 45,
+                    scale: 0.6 + Math.random() * 0.4,
+                    delayOffset: Math.random() * 10000 // Random start time for the erase cycle
+                });
+            }
+        }
+        return items;
     }, []);
-
-    useEffect(() => {
-        // Initial burst
-        for (let i = 0; i < 6; i++) spawnScribble();
-
-        // High frequency spawn
-        const interval = setInterval(spawnScribble, 800); 
-        return () => clearInterval(interval);
-    }, [spawnScribble]);
-
-    const removeScribble = (uid: number) => {
-        setScribbles(prev => prev.filter(s => s.uid !== uid));
-    };
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -273,7 +294,6 @@ const ScribbleManager: React.FC<{ theme: 'light' | 'dark' }> = ({ theme }) => {
                    key={s.uid} 
                    data={s} 
                    color={scribbleColor} 
-                   onComplete={removeScribble} 
                 />
             ))}
         </div>
@@ -284,14 +304,13 @@ const ScribbleManager: React.FC<{ theme: 'light' | 'dark' }> = ({ theme }) => {
 const PaperTextureDefs = () => (
     <svg width="0" height="0" className="absolute pointer-events-none">
         <filter id="crumpled-paper">
-            {/* Generate Noise */}
+            {/* Reduced surfaceScale for subtle texture */}
             <feTurbulence 
                 type="fractalNoise" 
                 baseFrequency="0.04" 
                 numOctaves="5" 
                 result="noise" 
             />
-            {/* Create Lighting Map from Noise */}
             <feDiffuseLighting 
                 in="noise" 
                 lightingColor="white" 
@@ -300,9 +319,6 @@ const PaperTextureDefs = () => (
             >
                 <feDistantLight azimuth="45" elevation="60" />
             </feDiffuseLighting>
-            
-            {/* Combine lighting with background */}
-            {/* We will composite this in CSS using mix-blend-mode instead for better color control */}
         </filter>
     </svg>
 );
@@ -327,19 +343,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
   const marginColor = theme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)';
 
   return (
-    <div className="relative w-full h-full bg-[#F0F0F0] dark:bg-[#1a1a1a] flex flex-col font-['Inter'] overflow-x-hidden overflow-y-auto transition-colors duration-500">
+    <div className="relative w-full h-full bg-[#F0F0F0] dark:bg-[#1a1a1a] flex flex-col font-['Inter'] overflow-x-hidden overflow-y-auto">
        
        <PaperTextureDefs />
 
        {/* Background Layer Group: Fixed to viewport */}
        <div className="fixed inset-0 pointer-events-none z-0">
            
-           {/* 1. Base Paper Color with Crumple Filter Applied via CSS */}
-           <div className="absolute inset-0 bg-[#FAFAFA] dark:bg-neutral-950 transition-colors duration-500"></div>
+           {/* 1. Base Paper Color */}
+           <div className="absolute inset-0 bg-[#FAFAFA] dark:bg-neutral-950"></div>
            
            {/* 2. The Crumpled 3D Texture Overlay */}
-           {/* We use the SVG turbulence filter to displace pixels, but standard CSS blend modes work better for "texture" overlay on colors */}
-           <div className="absolute inset-0 opacity-[0.5] dark:opacity-[0.25] mix-blend-multiply dark:mix-blend-overlay"
+           {/* Enhanced opacity for texture visibility */}
+           <div className="absolute inset-0 opacity-[0.8] dark:opacity-[0.4] mix-blend-multiply dark:mix-blend-overlay"
                 style={{ filter: 'url(#crumpled-paper)' }}
            ></div>
 
@@ -402,10 +418,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
        {/* --- Main Content --- */}
        <div className="flex-1 z-10 flex flex-col items-center justify-center w-full px-6 text-center py-12 relative min-h-[500px]">
           
-          <h1 className="text-[34px] md:text-7xl font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 leading-tight max-w-4xl tracking-tight">
+          <h1 className="text-[32px] md:text-[70px] font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 leading-tight max-w-4xl tracking-tight">
              Turn your{' '}
              <span 
-               className="inline-block text-[#ED0C14] min-w-[3ch] md:min-w-[4ch] text-left relative transition-all duration-300"
+               className="inline-block text-[#ED0C14] min-w-[3ch] md:min-w-[4ch] text-left relative"
                style={{ 
                    fontFamily: FONTS[fontIndex],
                    transform: 'rotate(-2deg)',
@@ -427,7 +443,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
           
           <button 
              onClick={onEnterApp}
-             className="group relative inline-flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-[15px] font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200"
+             className="group relative inline-flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-[15px] font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-transform duration-200"
           >
              <span>Try it now</span>
              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
