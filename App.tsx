@@ -38,6 +38,11 @@ const App: React.FC = () => {
     return localStorage.getItem('scriptsmith_fontName') || "";
   });
 
+  // 'clean' = no unsaved changes (hidden icon)
+  // 'dirty' = user typed something (show clickable check)
+  // 'saved' = user clicked check (show success animation)
+  const [nameInputState, setNameInputState] = useState<'clean' | 'dirty' | 'saved'>('clean');
+
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Theme State - Simple Light/Dark toggle
@@ -193,6 +198,18 @@ const App: React.FC = () => {
      setIsExportModalOpen(false);
   };
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFontName(e.target.value);
+      setNameInputState('dirty');
+  };
+
+  const handleNameConfirm = () => {
+      setNameInputState('saved');
+      setTimeout(() => {
+          setNameInputState('clean');
+      }, 1500);
+  };
+
   const completedCount = CHAR_SET.filter(c => fontMap[c] && fontMap[c].strokes.length > 0).length;
   const progressPercent = Math.round((completedCount/CHAR_SET.length)*100);
 
@@ -272,7 +289,7 @@ const App: React.FC = () => {
                      <input 
                         type="text" 
                         value={fontName}
-                        onChange={(e) => setFontName(e.target.value)}
+                        onChange={handleNameChange}
                         className="w-full h-full bg-transparent border-none outline-none text-[13px] font-normal text-black dark:text-white placeholder:text-[#7B7B7B] dark:placeholder:text-neutral-500"
                         placeholder="myhandwriting"
                      />
@@ -407,51 +424,63 @@ const App: React.FC = () => {
       {isExportModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsExportModalOpen(false)}></div>
-              <div className="relative bg-white dark:bg-neutral-900 rounded-[24px] border border-gray-200 dark:border-neutral-800 w-[90%] max-w-[340px] sm:max-w-[400px] p-6 sm:p-8 shadow-2xl transform transition-all flex flex-col items-start text-left">
+              <div className="relative bg-white dark:bg-neutral-900 rounded-[24px] border border-gray-200 dark:border-neutral-800 w-[90%] max-w-[320px] p-6 shadow-2xl transform transition-all flex flex-col items-start text-left">
                   <button 
                     onClick={() => setIsExportModalOpen(false)}
                     className="absolute top-4 right-4 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
                   >
-                      <X size={20} />
+                      <X size={18} />
                   </button>
 
-                  <h3 className="text-2xl font-semibold text-black dark:text-white mb-2 font-['Inter']">Export Font</h3>
-                  <p className="text-sm text-gray-500 dark:text-neutral-400 mb-8 leading-relaxed">
+                  <h3 className="text-lg font-semibold text-black dark:text-white mb-2 font-['Inter']">Export Font</h3>
+                  <p className="text-[13px] text-gray-500 dark:text-neutral-400 mb-6 leading-relaxed">
                       Download your unique handwriting font to use in your favorite apps.
                   </p>
 
-                  <div className="w-full mb-8">
-                       <div className="relative group w-full h-[50px]">
+                  <div className="w-full mb-6">
+                       <div className="relative group w-full h-[40px]">
                            <input
                                 type="text"
                                 value={fontName}
-                                onChange={(e) => setFontName(e.target.value)}
+                                onChange={handleNameChange}
                                 placeholder="myhandwriting"
-                                className="w-full h-full bg-transparent border-none outline outline-[0.5px] outline-[#D9D9D9] dark:outline-neutral-800 focus:outline-gray-400 dark:focus:outline-neutral-600 rounded-[30px] px-6 text-[16px] font-medium text-black dark:text-white placeholder:text-[#7B7B7B] dark:placeholder:text-neutral-500 transition-all"
+                                className="w-full h-full bg-transparent border-none outline outline-[0.5px] outline-[#D9D9D9] dark:outline-neutral-800 focus:outline-gray-400 dark:focus:outline-neutral-600 rounded-[30px] px-4 text-[14px] font-medium text-black dark:text-white placeholder:text-[#7B7B7B] dark:placeholder:text-neutral-500 transition-all"
                                 onFocus={(e) => e.target.placeholder = ''}
                                 onBlur={(e) => e.target.placeholder = 'myhandwriting'}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleNameConfirm(); }}
                            />
-                           {fontName.length > 0 && (
-                               <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-black dark:text-white animate-in fade-in zoom-in duration-200">
-                                   <Check size={18} strokeWidth={2.5} />
-                               </div>
-                           )}
+                           {/* Checkmark Logic */}
+                           <div className="absolute inset-y-0 right-3 flex items-center">
+                               {nameInputState === 'dirty' && fontName.length > 0 && (
+                                   <button 
+                                       onClick={handleNameConfirm}
+                                       className="text-gray-400 hover:text-black dark:hover:text-white transition-colors animate-in fade-in duration-200"
+                                   >
+                                       <Check size={16} strokeWidth={2.5} />
+                                   </button>
+                               )}
+                               {nameInputState === 'saved' && (
+                                   <div className="text-[#ED0C14] animate-in fade-in zoom-in duration-300">
+                                        <Check size={16} strokeWidth={2.5} />
+                                   </div>
+                               )}
+                           </div>
                        </div>
                   </div>
 
-                  <div className="flex flex-col gap-3 w-full">
+                  <div className="flex flex-col gap-2.5 w-full">
                       <button 
                         onClick={handleExport}
-                        className="w-full bg-black dark:bg-white text-white dark:text-black h-[50px] rounded-[30px] text-[15px] font-medium hover:bg-neutral-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-black dark:bg-white text-white dark:text-black h-[40px] rounded-[30px] text-[13px] font-medium hover:bg-neutral-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
                       >
                           Download .ttf
                       </button>
 
                       <button 
                         onClick={handleExportFamily}
-                        className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-black dark:text-white h-[50px] rounded-[30px] text-[15px] font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-black dark:text-white h-[40px] rounded-[30px] text-[13px] font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
                       >
-                          <FileArchive size={16} />
+                          <FileArchive size={14} />
                           Download Family (.zip)
                       </button>
                   </div>
