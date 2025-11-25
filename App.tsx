@@ -5,7 +5,7 @@ import DrawingPad from './components/DrawingPad';
 import CharacterGrid from './components/CharacterGrid';
 import PreviewArea from './components/PreviewArea';
 import { generateFont, generateFontFamilyZip, downloadFile, centerStrokes } from './utils/svgHelpers';
-import { Download, X, CheckCircle2, FileArchive, ChevronLeft, ChevronRight, Menu, RotateCcw, Sun, Moon } from 'lucide-react';
+import { Download, X, CheckCircle2, FileArchive, ChevronLeft, ChevronRight, Menu, RotateCcw, Sun, Moon, PenLine, Check } from 'lucide-react';
 
 type ViewMode = 'CANVAS' | 'PREVIEW';
 
@@ -406,42 +406,53 @@ const App: React.FC = () => {
       {/* Export Modal */}
       {isExportModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-sm" onClick={() => setIsExportModalOpen(false)}></div>
-              <div className="relative bg-white dark:bg-neutral-900 rounded-[20px] border border-[#D9D9D9] dark:border-neutral-800 w-full max-w-sm p-6 shadow-2xl">
+              <div className="absolute inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm transition-opacity" onClick={() => setIsExportModalOpen(false)}></div>
+              <div className="relative bg-white dark:bg-neutral-900 rounded-[24px] border border-gray-200 dark:border-neutral-800 w-[90%] max-w-[340px] sm:max-w-[400px] p-6 sm:p-8 shadow-2xl transform transition-all flex flex-col items-start text-left">
                   <button 
                     onClick={() => setIsExportModalOpen(false)}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-black dark:hover:text-white"
+                    className="absolute top-4 right-4 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
                   >
-                      <X size={16} />
+                      <X size={20} />
                   </button>
 
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Export Font</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">Download your font family ready for installation.</p>
+                  <h3 className="text-2xl font-semibold text-black dark:text-white mb-2 font-['Inter']">Export Font</h3>
+                  <p className="text-sm text-gray-500 dark:text-neutral-400 mb-8 leading-relaxed">
+                      Download your unique handwriting font to use in your favorite apps.
+                  </p>
 
-                  <div className="space-y-3">
-                      <div className="p-3 bg-gray-50 dark:bg-neutral-800 rounded-lg border border-gray-100 dark:border-neutral-700 flex items-center gap-3">
-                           <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">
-                                <CheckCircle2 size={16} />
-                           </div>
-                           <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{getExportName()}</p>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400">TrueType Font (.ttf)</p>
-                           </div>
-                      </div>
+                  <div className="w-full mb-8">
+                       <div className="relative group w-full h-[50px]">
+                           <input
+                                type="text"
+                                value={fontName}
+                                onChange={(e) => setFontName(e.target.value)}
+                                placeholder="myhandwriting"
+                                className="w-full h-full bg-transparent border-none outline outline-[0.5px] outline-[#D9D9D9] dark:outline-neutral-800 focus:outline-gray-400 dark:focus:outline-neutral-600 rounded-[30px] px-6 text-[16px] font-medium text-black dark:text-white placeholder:text-[#7B7B7B] dark:placeholder:text-neutral-500 transition-all"
+                                onFocus={(e) => e.target.placeholder = ''}
+                                onBlur={(e) => e.target.placeholder = 'myhandwriting'}
+                           />
+                           {fontName.length > 0 && (
+                               <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-black dark:text-white animate-in fade-in zoom-in duration-200">
+                                   <Check size={18} strokeWidth={2.5} />
+                               </div>
+                           )}
+                       </div>
+                  </div>
 
+                  <div className="flex flex-col gap-3 w-full">
                       <button 
                         onClick={handleExport}
-                        className="w-full bg-black dark:bg-white text-white dark:text-black h-9 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200"
+                        className="w-full bg-black dark:bg-white text-white dark:text-black h-[50px] rounded-[30px] text-[15px] font-medium hover:bg-neutral-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
                       >
-                          Download Regular
+                          Download .ttf
                       </button>
 
                       <button 
                         onClick={handleExportFamily}
-                        className="w-full bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 text-gray-900 dark:text-white h-9 rounded-lg text-sm font-medium hover:border-gray-400 dark:hover:border-neutral-500 flex items-center justify-center gap-2"
+                        className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-black dark:text-white h-[50px] rounded-[30px] text-[15px] font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
                       >
-                          <FileArchive size={14} />
-                          Download Font Family (ZIP)
+                          <FileArchive size={16} />
+                          Download Family (.zip)
                       </button>
                   </div>
               </div>
