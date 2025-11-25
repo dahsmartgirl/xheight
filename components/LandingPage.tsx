@@ -1,14 +1,311 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowRight, Moon, Sun } from 'lucide-react';
+
+// --- DATA & ASSETS ---
 
 const FONTS = [
   'Caveat',
   'Shadows Into Light',
   'Patrick Hand', 
   'Architects Daughter',
-  'Kalam'
+  'Kalam',
+  'Indie Flower',
+  'Gloria Hallelujah',
+  'Permanent Marker',
+  'Covered By Your Grace',
+  'Rock Salt',
+  'Homemade Apple',
+  'Reenie Beanie'
 ];
+
+type ScribbleType = 'path' | 'text';
+
+interface ScribbleAsset {
+  id: string;
+  type: ScribbleType;
+  content: string | React.ReactNode;
+  fontFamily?: string;
+  viewBox?: string;
+  width?: number;
+  height?: number;
+  strokeWidth?: number;
+}
+
+const SCRIBBLE_ASSETS: ScribbleAsset[] = [
+  // --- SHAPES & DOODLES ---
+  { id: 'spiral_1', type: 'path', viewBox: '0 0 100 100', width: 100, height: 100, content: 'M50 50 m0 0 a1 1 0 0 1 2 2 a3 3 0 0 1 -4 4 a6 6 0 0 1 8 8 a12 12 0 0 1 -16 -10 a20 20 0 0 1 24 -14 a30 30 0 0 1 -32 28 a45 45 0 0 1 48 -40' },
+  { id: 'spiral_loose', type: 'path', viewBox: '0 0 100 100', width: 100, height: 100, content: 'M 20 50 C 20 20 80 20 80 50 C 80 80 20 80 20 50 C 20 35 60 35 60 50' },
+  { id: 'cube', type: 'path', viewBox: '0 0 100 100', width: 90, height: 90, content: 'M20 30 L50 10 L80 30 L80 70 L50 90 L20 70 Z M20 30 L50 50 L80 30 M50 50 L50 90' },
+  { id: 'star_simple', type: 'path', viewBox: '0 0 100 100', width: 80, height: 80, content: 'M50 10 L60 40 L90 40 L65 60 L75 90 L50 70 L25 90 L35 60 L10 40 L40 40 Z' },
+  { id: 'star_doodle', type: 'path', viewBox: '0 0 50 50', width: 60, height: 60, content: 'M25 5 L30 20 L45 20 L32 30 L38 45 L25 35 L12 45 L18 30 L5 20 L20 20 Z' },
+  { id: 'arrow_curved', type: 'path', viewBox: '0 0 100 60', width: 100, height: 60, content: 'M10 30 Q 50 0 90 30 M 70 20 L 90 30 L 75 45' },
+  { id: 'arrow_zigzag', type: 'path', viewBox: '0 0 100 40', width: 100, height: 40, content: 'M10 20 L 30 10 L 50 30 L 70 10 L 90 20 M 80 15 L 90 20 L 80 25' },
+  { id: 'bulb', type: 'path', viewBox: '0 0 60 80', width: 50, height: 70, content: 'M15 30 A 20 20 0 1 1 45 30 L 40 50 L 20 50 L 15 30 Z M22 55 L38 55 M24 60 L36 60 M28 65 L32 65' },
+  { id: 'dna', type: 'path', viewBox: '0 0 60 100', width: 50, height: 90, content: 'M15 10 Q 45 25 15 40 Q 45 55 15 70 Q 45 85 15 100 M45 10 Q 15 25 45 40 Q 15 55 45 70 Q 15 85 45 100' },
+  { id: 'planet', type: 'path', viewBox: '0 0 100 60', width: 90, height: 50, content: 'M 50 30 A 15 15 0 1 0 50.1 30.1 M 20 40 Q 50 10 80 20 M 20 40 Q 50 60 80 20' }, 
+  { id: 'atom', type: 'path', viewBox: '0 0 100 100', width: 90, height: 90, content: 'M 50 50 m -10 0 a 10 10 0 1 0 20 0 a 10 10 0 1 0 -20 0 M 20 50 A 30 10 0 1 0 80 50 A 30 10 0 1 0 20 50 M 50 20 A 10 30 0 1 0 50 80 A 10 30 0 1 0 50 20 M 30 30 A 35 35 45 1 0 70 70 A 35 35 45 1 0 30 30' },
+  { id: 'rocket', type: 'path', viewBox: '0 0 60 100', width: 50, height: 80, content: 'M 30 10 Q 10 40 10 70 L 20 80 L 30 70 L 40 80 L 50 70 Q 50 40 30 10 M 30 30 A 5 5 0 1 0 30.1 30.1 M 20 80 L 15 95 M 40 80 L 45 95 M 30 70 L 30 90' },
+  { id: 'paper_plane', type: 'path', viewBox: '0 0 100 60', width: 90, height: 50, content: 'M 10 20 L 90 30 L 10 50 L 30 35 L 10 20 M 30 35 L 90 30' },
+  { id: 'heart', type: 'path', viewBox: '0 0 50 50', width: 50, height: 50, content: 'M25 45 C 5 25 5 10 25 10 C 45 10 45 25 25 45' },
+  { id: 'heart_broken', type: 'path', viewBox: '0 0 50 50', width: 50, height: 50, content: 'M25 45 C 5 25 5 10 25 10 C 45 10 45 25 25 45 M 25 15 L 20 25 L 30 30 L 25 40' },
+  { id: 'cloud', type: 'path', viewBox: '0 0 100 60', width: 90, height: 50, content: 'M 20 40 A 10 10 0 1 1 35 30 A 15 15 0 1 1 65 30 A 10 10 0 1 1 80 40 L 20 40' },
+  { id: 'lightning', type: 'path', viewBox: '0 0 40 80', width: 40, height: 70, content: 'M 25 10 L 5 40 L 20 40 L 15 70 L 35 30 L 20 30 L 25 10' },
+  { id: 'tictactoe', type: 'path', viewBox: '0 0 60 60', width: 60, height: 60, content: 'M20 10 L20 50 M40 10 L40 50 M10 20 L50 20 M10 40 L50 40 M25 25 L35 35 M35 25 L25 35' },
+  { id: 'math_sum', type: 'path', viewBox: '0 0 50 50', width: 40, height: 40, content: 'M 40 10 L 10 10 L 30 25 L 10 40 L 40 40' }, // Sigma
+  { id: 'math_pi', type: 'path', viewBox: '0 0 50 50', width: 40, height: 40, content: 'M 10 15 L 40 15 M 15 15 L 15 40 M 35 15 L 35 35 Q 35 40 40 40' },
+  { id: 'integral', type: 'path', viewBox: '0 0 30 80', width: 25, height: 70, content: 'M 20 10 Q 10 10 10 25 L 10 55 Q 10 70 0 70' },
+  { id: 'music_notes', type: 'path', viewBox: '0 0 60 60', width: 60, height: 60, content: 'M15 45 L15 15 L45 10 L45 40 M15 20 L45 15 M 10 45 A 5 5 0 1 0 20 45 A 5 5 0 1 0 10 45 M 40 40 A 5 5 0 1 0 50 40 A 5 5 0 1 0 40 40' },
+  { id: 'circle_messy', type: 'path', viewBox: '0 0 60 60', width: 60, height: 60, content: 'M 30 10 C 50 10 55 50 30 50 C 5 50 10 10 30 10 C 45 10 50 20 50 20' }, 
+  { id: 'triangle_messy', type: 'path', viewBox: '0 0 60 60', width: 60, height: 60, content: 'M 30 10 L 50 50 L 10 50 L 30 10 L 50 50' },
+  { id: 'square_messy', type: 'path', viewBox: '0 0 60 60', width: 60, height: 60, content: 'M 15 15 L 45 15 L 45 45 L 10 48 L 12 12 L 50 15' },
+  { id: 'smiley', type: 'path', viewBox: '0 0 60 60', width: 60, height: 60, content: 'M 15 20 A 2 2 0 1 0 15.1 20.1 M 45 20 A 2 2 0 1 0 45.1 20.1 M 15 40 Q 30 55 45 40' },
+  { id: 'cat', type: 'path', viewBox: '0 0 60 50', width: 60, height: 50, content: 'M 10 20 L 15 5 L 25 15 L 35 15 L 45 5 L 50 20 M 10 20 Q 30 40 50 20 M 20 25 A 2 2 0 1 0 20.1 25.1 M 40 25 A 2 2 0 1 0 40.1 25.1 M 30 30 L 25 35 L 35 35 L 30 30' },
+  { id: 'flower', type: 'path', viewBox: '0 0 60 60', width: 60, height: 60, content: 'M 30 30 m -10 0 a 10 10 0 1 0 20 0 a 10 10 0 1 0 -20 0 M 30 20 L 30 5 M 40 30 L 55 30 M 30 40 L 30 55 M 20 30 L 5 30 M 38 22 L 50 10 M 38 38 L 50 50 M 22 38 L 10 50 M 22 22 L 10 10' },
+
+  // --- TEXTS ---
+  { id: 't_rough', type: 'text', content: 'rough draft', fontFamily: 'Caveat' },
+  { id: 't_idea', type: 'text', content: 'idea!', fontFamily: 'Kalam' },
+  { id: 't_scribble', type: 'text', content: 'scribble...', fontFamily: 'Shadows Into Light' },
+  { id: 't_hello', type: 'text', content: 'hello world', fontFamily: 'Patrick Hand' },
+  { id: 't_imp', type: 'text', content: 'important!', fontFamily: 'Caveat' },
+  { id: 't_todo', type: 'text', content: 'todo:', fontFamily: 'Architects Daughter' },
+  { id: 't_art', type: 'text', content: 'art', fontFamily: 'Rock Salt' },
+  { id: 't_cool', type: 'text', content: 'very cool', fontFamily: 'Reenie Beanie' },
+  { id: 't_nope', type: 'text', content: 'nope', fontFamily: 'Permanent Marker' },
+  { id: 't_wow', type: 'text', content: 'wow', fontFamily: 'Gloria Hallelujah' },
+  { id: 't_font', type: 'text', content: 'font', fontFamily: 'Indie Flower' },
+  { id: 't_love', type: 'text', content: 'love it', fontFamily: 'Covered By Your Grace' },
+  { id: 't_sketch', type: 'text', content: 'sketch', fontFamily: 'Homemade Apple' },
+  { id: 't_abc', type: 'text', content: 'abc', fontFamily: 'Kalam' },
+  { id: 't_123', type: 'text', content: '123', fontFamily: 'Patrick Hand' },
+  { id: 't_ink', type: 'text', content: 'ink', fontFamily: 'Caveat' },
+  { id: 't_draw', type: 'text', content: 'draw', fontFamily: 'Architects Daughter' },
+];
+
+interface ActiveScribble {
+  uid: number;
+  asset: ScribbleAsset;
+  x: number; // Percent
+  y: number; // Percent
+  rotation: number;
+  scale: number;
+}
+
+// --- COMPONENTS ---
+
+const ScribbleItem: React.FC<{
+  data: ActiveScribble;
+  color: string;
+  onComplete: (uid: number) => void;
+}> = ({ data, color, onComplete }) => {
+  const [stage, setStage] = useState<'drawing' | 'idle' | 'erasing'>('drawing');
+  
+  // Lifecycle timings (randomized slightly for natural feel)
+  const drawDuration = useRef(1000 + Math.random() * 1000); 
+  const idleDuration = useRef(3000 + Math.random() * 2000); 
+  const eraseDuration = useRef(800 + Math.random() * 500);
+
+  useEffect(() => {
+    // 1. Start Idle
+    const t1 = setTimeout(() => setStage('idle'), drawDuration.current);
+    // 2. Start Erase
+    const t2 = setTimeout(() => setStage('erasing'), drawDuration.current + idleDuration.current);
+    // 3. Complete
+    const t3 = setTimeout(() => onComplete(data.uid), drawDuration.current + idleDuration.current + eraseDuration.current);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [data.uid, onComplete]);
+
+  const styleBase: React.CSSProperties = {
+    position: 'absolute',
+    left: `${data.x}%`,
+    top: `${data.y}%`,
+    transform: `translate(-50%, -50%) rotate(${data.rotation}deg) scale(${data.scale})`,
+    pointerEvents: 'none',
+    color: color,
+    opacity: 0.85, // Slightly higher opacity for visibility
+    zIndex: 1,
+  };
+
+  if (data.asset.type === 'path') {
+    return (
+      <div style={styleBase} className="flex items-center justify-center">
+        <svg 
+           viewBox={data.asset.viewBox || '0 0 100 100'} 
+           fill="none" 
+           stroke="currentColor" 
+           strokeWidth={data.asset.strokeWidth || 2} 
+           strokeLinecap="round" 
+           strokeLinejoin="round"
+           style={{
+               width: data.asset.width || 80,
+               height: data.asset.height || 80,
+               overflow: 'visible'
+           }}
+        >
+          <path 
+             d={data.asset.content as string} 
+             pathLength={1}
+             style={{
+                strokeDasharray: 1,
+                strokeDashoffset: stage === 'drawing' ? 1 : 0,
+                transition: stage === 'drawing' 
+                   ? `stroke-dashoffset ${drawDuration.current}ms ease-out` 
+                   : stage === 'erasing' 
+                   ? `stroke-dashoffset ${eraseDuration.current}ms ease-in` 
+                   : 'none',
+                opacity: stage === 'erasing' ? 0.2 : 1 // Fade out during erase too
+             }}
+          />
+        </svg>
+      </div>
+    );
+  } else {
+    // Text Scribble
+    return (
+        <div style={styleBase} className="whitespace-nowrap">
+            <div
+               style={{
+                  fontFamily: data.asset.fontFamily,
+                  fontSize: '28px',
+                  fontWeight: 500,
+                  // Clip path wipe effect
+                  clipPath: stage === 'drawing' ? 'inset(0 100% 0 0)' : stage === 'erasing' ? 'inset(0 0 0 100%)' : 'inset(0 0 0 0)',
+                  transition: `clipPath ${stage === 'drawing' ? drawDuration.current : eraseDuration.current}ms linear`,
+               }}
+            >
+                {data.asset.content}
+            </div>
+        </div>
+    );
+  }
+};
+
+const ScribbleManager: React.FC<{ theme: 'light' | 'dark' }> = ({ theme }) => {
+    const [scribbles, setScribbles] = useState<ActiveScribble[]>([]);
+    const scribbleColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.45)'; // Darker for pencil look
+    const MAX_SCRIBBLES = 20;
+
+    const spawnScribble = useCallback(() => {
+         setScribbles(prev => {
+             if (prev.length >= MAX_SCRIBBLES) return prev; 
+
+             // Pick random asset
+             const asset = SCRIBBLE_ASSETS[Math.floor(Math.random() * SCRIBBLE_ASSETS.length)];
+             
+             // Weighted random zones to favor edges and corners more heavily
+             // 0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight, 4=LeftEdge, 5=RightEdge, 6=TopEdge, 7=BottomEdge
+             const zone = Math.floor(Math.random() * 8);
+             let x = 0, y = 0;
+
+             const padding = 5; // % padding from edge
+
+             switch(zone) {
+                case 0: // Top Left
+                   x = Math.random() * 30 + padding;
+                   y = Math.random() * 30 + padding;
+                   break;
+                case 1: // Top Right
+                   x = 70 + Math.random() * 25;
+                   y = Math.random() * 30 + padding;
+                   break;
+                case 2: // Bottom Left
+                   x = Math.random() * 30 + padding;
+                   y = 70 + Math.random() * 25;
+                   break;
+                case 3: // Bottom Right
+                   x = 70 + Math.random() * 25;
+                   y = 70 + Math.random() * 25;
+                   break;
+                case 4: // Left Edge
+                   x = Math.random() * 15 + padding;
+                   y = Math.random() * 80 + 10;
+                   break;
+                case 5: // Right Edge
+                   x = 85 + Math.random() * 10;
+                   y = Math.random() * 80 + 10;
+                   break;
+                case 6: // Top Edge
+                   x = Math.random() * 80 + 10;
+                   y = Math.random() * 15 + padding;
+                   break;
+                case 7: // Bottom Edge
+                   x = Math.random() * 80 + 10;
+                   y = 85 + Math.random() * 10;
+                   break;
+             }
+
+             const newScribble: ActiveScribble = {
+                 uid: Date.now() + Math.random(),
+                 asset,
+                 x,
+                 y,
+                 rotation: (Math.random() * 60) - 30, // -30 to 30 deg
+                 scale: 0.7 + Math.random() * 0.5 // 0.7 to 1.2
+             };
+
+             return [...prev, newScribble];
+         });
+    }, []);
+
+    useEffect(() => {
+        // Initial burst
+        for (let i = 0; i < 6; i++) spawnScribble();
+
+        // High frequency spawn
+        const interval = setInterval(spawnScribble, 800); 
+        return () => clearInterval(interval);
+    }, [spawnScribble]);
+
+    const removeScribble = (uid: number) => {
+        setScribbles(prev => prev.filter(s => s.uid !== uid));
+    };
+
+    return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {scribbles.map(s => (
+                <ScribbleItem 
+                   key={s.uid} 
+                   data={s} 
+                   color={scribbleColor} 
+                   onComplete={removeScribble} 
+                />
+            ))}
+        </div>
+    );
+};
+
+// --- SVG FILTER FOR PAPER TEXTURE ---
+const PaperTextureDefs = () => (
+    <svg width="0" height="0" className="absolute pointer-events-none">
+        <filter id="crumpled-paper">
+            {/* Generate Noise */}
+            <feTurbulence 
+                type="fractalNoise" 
+                baseFrequency="0.04" 
+                numOctaves="5" 
+                result="noise" 
+            />
+            {/* Create Lighting Map from Noise */}
+            <feDiffuseLighting 
+                in="noise" 
+                lightingColor="white" 
+                surfaceScale="2" 
+                result="lighting"
+            >
+                <feDistantLight azimuth="45" elevation="60" />
+            </feDiffuseLighting>
+            
+            {/* Combine lighting with background */}
+            {/* We will composite this in CSS using mix-blend-mode instead for better color control */}
+        </filter>
+    </svg>
+);
 
 interface LandingPageProps {
   onEnterApp: () => void;
@@ -26,30 +323,51 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
     return () => clearInterval(interval);
   }, []);
 
-  const lineColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.06)';
-  const marginColor = theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)';
-  const scribbleColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.12)';
+  const lineColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+  const marginColor = theme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)';
 
   return (
-    <div className="relative w-full h-full bg-[#FAFAFA] dark:bg-neutral-950 flex flex-col font-['Inter'] overflow-x-hidden overflow-y-auto">
+    <div className="relative w-full h-full bg-[#F0F0F0] dark:bg-[#1a1a1a] flex flex-col font-['Inter'] overflow-x-hidden overflow-y-auto transition-colors duration-500">
        
-       {/* Background: Fixed Notebook Lined Paper Style - Covers viewport always */}
-       <div className="fixed inset-0 pointer-events-none z-0" 
-            style={{
-                backgroundImage: `linear-gradient(${lineColor} 1px, transparent 1px)`,
-                backgroundSize: '100% 32px',
-                backgroundPosition: '0 24px' // Align with header slightly
-            }}>
-       </div>
-       
-       {/* Margin Line: Fixed */}
-       <div className="fixed left-[24px] md:left-[80px] top-0 bottom-0 w-[1px] pointer-events-none z-0 border-l"
-            style={{ borderColor: marginColor }}>
+       <PaperTextureDefs />
+
+       {/* Background Layer Group: Fixed to viewport */}
+       <div className="fixed inset-0 pointer-events-none z-0">
+           
+           {/* 1. Base Paper Color with Crumple Filter Applied via CSS */}
+           <div className="absolute inset-0 bg-[#FAFAFA] dark:bg-neutral-950 transition-colors duration-500"></div>
+           
+           {/* 2. The Crumpled 3D Texture Overlay */}
+           {/* We use the SVG turbulence filter to displace pixels, but standard CSS blend modes work better for "texture" overlay on colors */}
+           <div className="absolute inset-0 opacity-[0.5] dark:opacity-[0.25] mix-blend-multiply dark:mix-blend-overlay"
+                style={{ filter: 'url(#crumpled-paper)' }}
+           ></div>
+
+           {/* 3. Lined Paper Pattern */}
+           <div className="absolute inset-0" 
+                style={{
+                    backgroundImage: `linear-gradient(${lineColor} 1px, transparent 1px)`,
+                    backgroundSize: '100% 32px',
+                    backgroundPosition: '0 24px'
+                }}>
+           </div>
+           
+           {/* 4. Margin Line */}
+           <div className="absolute left-[24px] md:left-[80px] top-0 bottom-0 w-[1px] border-l"
+                style={{ borderColor: marginColor }}>
+           </div>
+
+           {/* 5. Vignette for depth focus */}
+           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.05)_100%)] dark:bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] pointer-events-none"></div>
+
+           {/* 6. Dynamic Scribbles Layer */}
+           <ScribbleManager theme={theme} />
+
        </div>
 
        {/* --- Header --- */}
        <header className="h-[54px] shrink-0 flex items-center justify-between px-4 lg:px-[24px] z-50 relative w-full">
-            {/* Logo - Matches App.tsx sizing exactly */}
+            {/* Logo */}
             <div className="flex items-center select-none shrink-0 min-w-[70px]">
                  <div className="flex items-center shrink-0 w-full overflow-visible">
                     <svg 
@@ -81,188 +399,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
             </button>
        </header>
 
-       {/* --- EXTENSIVE PENCIL SCRIBBLES (Background Art) --- */}
-       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" style={{ color: scribbleColor }}>
-          
-          {/* Top Left Cluster */}
-          <div className="absolute top-[8%] left-[2%] md:left-[5%] rotate-[-10deg] w-[120px] h-[120px]">
-              {/* Messy Spiral */}
-              <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-full h-full opacity-80">
-                  <path d="M50 50 m0 0 a1 1 0 0 1 2 2 a3 3 0 0 1 -4 4 a6 6 0 0 1 8 8 a12 12 0 0 1 -16 -10 a20 20 0 0 1 24 -14 a30 30 0 0 1 -32 28 a45 45 0 0 1 48 -40" strokeLinecap="round" />
-              </svg>
-          </div>
-          <div className="absolute top-[15%] left-[8%] md:left-[12%] rotate-[20deg] w-[60px] h-[40px]">
-             {/* Math x */}
-             <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-full h-full opacity-60">
-                <path d="M10 10 L30 30 M30 10 L10 30" strokeLinecap="round" />
-             </svg>
-          </div>
-          <div className="absolute top-[4%] left-[20%] md:left-[25%] rotate-[15deg] w-[80px] h-[60px]">
-             {/* Pyramid / Triangle */}
-             <svg viewBox="0 0 80 60" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-full h-full opacity-70">
-                <path d="M40 5 L10 55 L70 55 Z" strokeLinejoin="round" />
-                <path d="M40 5 L40 55" strokeWidth="0.5" />
-             </svg>
-          </div>
-
-          {/* Top Center-ish */}
-          <div className="absolute top-[2%] left-[45%] rotate-[-5deg] w-[60px] h-[80px]">
-             {/* Idea Lightbulb */}
-             <svg viewBox="0 0 60 80" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-80">
-                <path d="M15 30 A 20 20 0 1 1 45 30 L 40 50 L 20 50 L 15 30 Z" strokeLinecap="round" />
-                <path d="M22 55 L38 55 M24 60 L36 60 M28 65 L32 65" strokeLinecap="round" />
-                <path d="M10 10 L 5 5 M 50 10 L 55 5 M 30 5 L 30 0" strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
-             </svg>
-          </div>
-          <div className="absolute top-[12%] right-[35%] rotate-[10deg] w-[100px] h-[40px]">
-              {/* Chemistry H2O Doodle */}
-              <svg viewBox="0 0 100 40" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-full h-full opacity-60">
-                 <path d="M10 20 L 30 20 L 50 10 M 30 20 L 50 30" strokeLinecap="round" />
-                 <circle cx="10" cy="20" r="5" />
-                 <circle cx="50" cy="10" r="3" />
-                 <circle cx="50" cy="30" r="3" />
-              </svg>
-          </div>
-
-          {/* Top Right Cluster */}
-          <div className="absolute top-[5%] right-[2%] md:right-[8%] rotate-[5deg] w-[140px] h-[140px]">
-              {/* Geometric Cube Attempt */}
-              <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-70">
-                  <path d="M20 30 L50 10 L80 30 L80 70 L50 90 L20 70 Z M20 30 L50 50 L80 30 M50 50 L50 90" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-          </div>
-          <div className="absolute top-[18%] right-[8%] md:right-[15%] rotate-[-15deg] w-[80px] h-[80px]">
-               {/* Shading Lines */}
-               <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" strokeWidth="0.5" className="w-full h-full opacity-50">
-                   <path d="M10 10 L20 70 M20 10 L30 70 M30 10 L40 70 M40 10 L50 70 M50 10 L60 70" strokeLinecap="round" />
-               </svg>
-          </div>
-          <div className="absolute top-[2%] right-[20%] md:right-[25%] rotate-[25deg] w-[50px] h-[50px]">
-             {/* Music Note */}
-             <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-full h-full opacity-70">
-                <ellipse cx="15" cy="40" rx="6" ry="4" transform="rotate(-20 15 40)" />
-                <path d="M20 38 L20 10 L35 15 L35 43" strokeLinecap="round" strokeLinejoin="round" />
-                <ellipse cx="30" cy="45" rx="6" ry="4" transform="rotate(-20 30 45)" />
-                <path d="M20 15 L35 20" strokeWidth="2" strokeLinecap="round" />
-             </svg>
-          </div>
-
-          {/* Middle Left */}
-          <div className="absolute top-[35%] left-[2%] rotate-[45deg] w-[180px] h-[80px]">
-               {/* Big Arrow */}
-               <svg viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full opacity-80">
-                   <path d="M20 40 Q 100 10 160 40 M 140 25 L 160 40 L 140 55" strokeLinecap="round" strokeLinejoin="round"/>
-               </svg>
-          </div>
-          <div className="absolute top-[42%] left-[10%] md:left-[15%] rotate-[-5deg] w-[50px] h-[50px]">
-              {/* Circle */}
-              <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-60">
-                 <circle cx="25" cy="25" r="20" />
-                 <path d="M25 25 L25 25" strokeWidth="2" /> 
-              </svg>
-          </div>
-          <div className="absolute top-[55%] left-[5%] rotate-[-20deg] w-[100px] h-[60px]">
-              {/* "Plan A" Text-ish */}
-              <svg viewBox="0 0 100 60" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-50">
-                  <path d="M10 50 L10 20 L25 20 L30 30 L25 40 L10 40" strokeLinejoin="round"/> {/* P */}
-                  <path d="M35 10 L35 50 M35 50 L50 50" strokeLinecap="round"/> {/* L */}
-                  <path d="M60 50 L70 20 L80 50 M65 40 L75 40" strokeLinecap="round" strokeLinejoin="round"/> {/* A */}
-              </svg>
-          </div>
-
-          {/* Middle Right */}
-          <div className="absolute top-[38%] right-[2%] rotate-[-10deg] w-[150px] h-[100px]">
-               {/* Flowchart Box */}
-               <svg viewBox="0 0 150 100" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-70">
-                   <rect x="20" y="20" width="100" height="60" rx="5" />
-                   <path d="M120 50 L140 50 M135 45 L140 50 L135 55" strokeLinecap="round" />
-               </svg>
-          </div>
-          <div className="absolute top-[50%] right-[8%] md:right-[12%] rotate-[40deg] w-[60px] h-[120px]">
-             {/* DNA Helix */}
-             <svg viewBox="0 0 60 120" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-full h-full opacity-40">
-                <path d="M10 10 Q 50 30 10 50 Q 50 70 10 90 Q 50 110 10 130" />
-                <path d="M50 10 Q 10 30 50 50 Q 10 70 50 90 Q 10 110 50 130" />
-                <path d="M15 20 L45 20 M15 40 L45 40 M15 60 L45 60 M15 80 L45 80 M15 100 L45 100" strokeWidth="0.5" />
-             </svg>
-          </div>
-          
-          {/* Bottom Left Area */}
-          <div className="absolute bottom-[10%] left-[2%] md:left-[5%] rotate-[180deg] w-[200px] h-[200px] opacity-40">
-              {/* Large Scribble Mess */}
-              <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" strokeWidth="0.6" className="w-full h-full">
-                  <path d="M50 150 C 50 100 150 100 150 50 C 100 50 50 100 100 150 C 150 100 100 50 50 100" strokeLinecap="round" />
-                  <path d="M40 140 C 60 180 160 160 140 40" strokeLinecap="round" />
-              </svg>
-          </div>
-          <div className="absolute bottom-[25%] left-[10%] md:left-[20%] rotate-[10deg] w-[80px] h-[40px]">
-               {/* Underline Emphasis */}
-               <svg viewBox="0 0 100 40" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full opacity-70">
-                   <path d="M10 20 Q 50 30 90 20" strokeLinecap="round" />
-                   <path d="M15 30 Q 50 40 85 30" strokeLinecap="round" />
-               </svg>
-          </div>
-          <div className="absolute bottom-[5%] left-[20%] md:left-[25%] rotate-[-5deg] w-[70px] h-[50px]">
-             {/* Planet (Saturn) */}
-             <svg viewBox="0 0 70 50" fill="none" stroke="currentColor" strokeWidth="0.9" className="w-full h-full opacity-60">
-                 <circle cx="35" cy="25" r="15" />
-                 <ellipse cx="35" cy="25" rx="30" ry="8" transform="rotate(-15 35 25)" />
-             </svg>
-          </div>
-
-          {/* Bottom Center-ish */}
-          <div className="absolute bottom-[2%] left-[45%] rotate-[5deg] w-[100px] h-[60px]">
-              {/* E=mc2 */}
-              <svg viewBox="0 0 100 60" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-50">
-                  <path d="M10 10 L30 10 M10 10 L10 30 L25 30 M10 30 L10 50 L30 50" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M40 25 L50 25 M40 35 L50 35" strokeLinecap="round"/>
-                  <path d="M60 50 L60 20 L70 30 L80 20 L80 50" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M90 20 C 85 20 85 30 90 30 L85 40 L95 40" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-          </div>
-
-          {/* Bottom Right Area */}
-          <div className="absolute bottom-[8%] right-[5%] md:right-[8%] rotate-[-20deg] w-[120px] h-[120px]">
-              {/* Star doodle */}
-               <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-80">
-                   <path d="M50 10 L60 40 L90 40 L65 60 L75 90 L50 70 L25 90 L35 60 L10 40 L40 40 Z" strokeLinecap="round" strokeLinejoin="round"/>
-                   {/* Correction scratch */}
-                   <path d="M20 50 L80 50 M30 40 L70 60" strokeWidth="0.5" opacity="0.5"/>
-               </svg>
-          </div>
-          <div className="absolute bottom-[25%] right-[20%] md:right-[25%] rotate-[30deg] w-[60px] h-[60px]">
-              {/* Tic Tac Toe Grid */}
-              <svg viewBox="0 0 60 60" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-60">
-                   <path d="M20 10 L20 50 M40 10 L40 50 M10 20 L50 20 M10 40 L50 40" strokeLinecap="round" />
-                   <path d="M25 25 L35 35 M35 25 L25 35" strokeWidth="1.5" /> {/* X */}
-                   <circle cx="45" cy="45" r="4" strokeWidth="1.5" /> {/* O */}
-              </svg>
-          </div>
-          <div className="absolute top-[80%] right-[35%] md:right-[40%] rotate-[15deg] w-[40px] h-[40px]">
-             {/* Small Cube */}
-             <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-full h-full opacity-50">
-                 <rect x="5" y="15" width="20" height="20" />
-                 <rect x="15" y="5" width="20" height="20" />
-                 <path d="M5 15 L15 5 M25 15 L35 5 M25 35 L35 25 M5 35 L15 25" />
-             </svg>
-          </div>
-
-          {/* Center Background Noise (Very faint) */}
-          <div className="absolute top-[30%] left-[30%] w-[40%] h-[40%] opacity-20 pointer-events-none">
-                <svg viewBox="0 0 400 400" fill="none" stroke="currentColor" strokeWidth="0.5" className="w-full h-full">
-                     <path d="M50 100 Q 200 50 350 100 T 350 300" strokeDasharray="10 10" />
-                     <path d="M100 50 L 50 350" strokeDasharray="5 5" />
-                </svg>
-          </div>
-       </div>
-
        {/* --- Main Content --- */}
-       <div className="flex-1 z-10 flex flex-col items-center justify-center w-full px-6 text-center py-12 relative">
+       <div className="flex-1 z-10 flex flex-col items-center justify-center w-full px-6 text-center py-12 relative min-h-[500px]">
           
-          <h1 className="text-4xl md:text-7xl font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 leading-tight max-w-4xl tracking-tight">
+          <h1 className="text-[34px] md:text-7xl font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 leading-tight max-w-4xl tracking-tight">
              Turn your{' '}
              <span 
-               className="inline-block text-[#ED0C14] min-w-[3ch] md:min-w-[4ch] text-left relative"
+               className="inline-block text-[#ED0C14] min-w-[3ch] md:min-w-[4ch] text-left relative transition-all duration-300"
                style={{ 
                    fontFamily: FONTS[fontIndex],
                    transform: 'rotate(-2deg)',
