@@ -26,30 +26,38 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
     return () => clearInterval(interval);
   }, []);
 
+  const lineColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.06)';
+  const marginColor = theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)';
+  const scribbleColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.12)';
+
   return (
-    <div className="relative w-full h-full bg-[#FAFAFA] dark:bg-neutral-950 overflow-hidden flex flex-col font-['Inter'] transition-colors duration-300">
+    <div className="relative w-full h-full bg-[#FAFAFA] dark:bg-neutral-950 flex flex-col font-['Inter'] overflow-x-hidden overflow-y-auto">
        
-       {/* Background Grid Pattern (Notebook Graph Paper Style) */}
-       <div className="absolute inset-0 pointer-events-none opacity-[0.4] dark:opacity-[0.1]" 
+       {/* Background: Fixed Notebook Lined Paper Style - Covers viewport always */}
+       <div className="fixed inset-0 pointer-events-none z-0" 
             style={{
-                backgroundImage: `
-                  linear-gradient(to right, ${theme === 'dark' ? '#333' : '#e5e5e5'} 1px, transparent 1px),
-                  linear-gradient(to bottom, ${theme === 'dark' ? '#333' : '#e5e5e5'} 1px, transparent 1px)
-                `,
-                backgroundSize: '24px 24px'
+                backgroundImage: `linear-gradient(${lineColor} 1px, transparent 1px)`,
+                backgroundSize: '100% 32px',
+                backgroundPosition: '0 24px' // Align with header slightly
             }}>
+       </div>
+       
+       {/* Margin Line: Fixed */}
+       <div className="fixed left-[24px] md:left-[80px] top-0 bottom-0 w-[1px] pointer-events-none z-0 border-l"
+            style={{ borderColor: marginColor }}>
        </div>
 
        {/* --- Header --- */}
-       <header className="absolute top-0 left-0 right-0 p-6 md:p-8 flex justify-between items-start z-50 pointer-events-none">
-            {/* Logo - Top Left */}
-            <div className="pointer-events-auto">
-                 <div className="w-[100px] md:w-[120px] h-auto">
+       <header className="h-[54px] shrink-0 flex items-center justify-between px-4 lg:px-[24px] z-50 relative w-full">
+            {/* Logo - Matches App.tsx sizing exactly */}
+            <div className="flex items-center select-none shrink-0 min-w-[70px]">
+                 <div className="flex items-center shrink-0 w-full overflow-visible">
                     <svg 
                       viewBox="0 0 90 25" 
                       fill="none" 
                       xmlns="http://www.w3.org/2000/svg" 
-                      className="w-full h-full block overflow-visible"
+                      className="w-auto h-[16px] lg:h-[20px] block overflow-visible"
+                      style={{ minWidth: '100%' }}
                     >
                         <path d="M8.18462 9.47875V12.2296L2.72821 17.7314H0V14.9805L5.45641 9.47875H8.18462ZM17.4605 14.9805V17.7314H14.7323L9.2759 12.2296V9.47875H12.0041L17.4605 14.9805ZM8.18462 5.62752V8.3784H5.45641L0 2.87664V0.125756H2.72821L8.18462 5.62752ZM17.4605 2.87664L12.0041 8.3784H9.2759V5.62752L14.7323 0.125756H17.4605V2.87664Z" fill="#ED0C14"/>
                         <path className="fill-black dark:fill-white" d="M18.3585 13.5563C18.2088 13.5563 18.134 13.4809 18.134 13.33C18.134 12.894 18.1756 12.5419 18.2587 12.2736C18.3419 12.0054 18.4666 11.8628 18.6329 11.8461C19.4976 11.7119 20.3872 11.5862 21.3018 11.4688C22.2331 11.3347 23.131 11.2257 23.9957 11.1419C24.1288 11.1419 24.2119 11.1754 24.2452 11.2425C24.2951 11.2928 24.32 11.3598 24.32 11.4437C24.32 11.8964 24.2867 12.2401 24.2202 12.4748C24.1537 12.6928 24.0207 12.8186 23.8211 12.8521C22.973 12.9695 22.0668 13.0952 21.1023 13.2294C20.1544 13.3635 19.2398 13.4725 18.3585 13.5563Z" />
@@ -63,61 +71,198 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
                  </div>
             </div>
 
-            {/* Theme Toggle - Top Right */}
+            {/* Theme Toggle */}
             <button 
               onClick={toggleTheme}
-              className="pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-all hover:scale-105 shadow-sm"
+              className="flex items-center justify-center w-9 h-9 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white"
               aria-label="Toggle theme"
             >
                 {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
        </header>
 
-       {/* --- Animated Scribble Art Elements --- */}
-       
-       {/* 1. Coil - Top Left */}
-       <div className="absolute top-[15%] left-[5%] md:left-[15%] text-black/5 dark:text-white/5 rotate-[-15deg] animate-[pulse_5s_ease-in-out_infinite] w-[120px] h-[120px] pointer-events-none">
-            <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full">
-                <path d="M20,50 C20,30 40,30 40,50 C40,70 20,70 20,50 C20,30 50,30 50,50 C50,70 30,70 30,50 C30,20 60,20 60,50 C60,80 40,80 40,50 C40,10 70,10 70,50 C70,90 50,90 50,50" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-       </div>
+       {/* --- EXTENSIVE PENCIL SCRIBBLES (Background Art) --- */}
+       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" style={{ color: scribbleColor }}>
+          
+          {/* Top Left Cluster */}
+          <div className="absolute top-[8%] left-[2%] md:left-[5%] rotate-[-10deg] w-[120px] h-[120px]">
+              {/* Messy Spiral */}
+              <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-full h-full opacity-80">
+                  <path d="M50 50 m0 0 a1 1 0 0 1 2 2 a3 3 0 0 1 -4 4 a6 6 0 0 1 8 8 a12 12 0 0 1 -16 -10 a20 20 0 0 1 24 -14 a30 30 0 0 1 -32 28 a45 45 0 0 1 48 -40" strokeLinecap="round" />
+              </svg>
+          </div>
+          <div className="absolute top-[15%] left-[8%] md:left-[12%] rotate-[20deg] w-[60px] h-[40px]">
+             {/* Math x */}
+             <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-full h-full opacity-60">
+                <path d="M10 10 L30 30 M30 10 L10 30" strokeLinecap="round" />
+             </svg>
+          </div>
+          <div className="absolute top-[4%] left-[20%] md:left-[25%] rotate-[15deg] w-[80px] h-[60px]">
+             {/* Pyramid / Triangle */}
+             <svg viewBox="0 0 80 60" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-full h-full opacity-70">
+                <path d="M40 5 L10 55 L70 55 Z" strokeLinejoin="round" />
+                <path d="M40 5 L40 55" strokeWidth="0.5" />
+             </svg>
+          </div>
 
-       {/* 2. Starburst - Bottom Right */}
-       <div className="absolute bottom-[15%] right-[5%] md:right-[15%] text-[#ED0C14]/10 dark:text-[#ED0C14]/20 rotate-[12deg] animate-[bounce_4s_infinite] w-[140px] h-[140px] pointer-events-none">
-            <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full">
-                 <path d="M50 10 L55 40 L85 35 L60 55 L75 85 L50 65 L25 85 L40 55 L15 35 L45 40 Z" strokeLinejoin="round" />
-            </svg>
-       </div>
+          {/* Top Center-ish */}
+          <div className="absolute top-[2%] left-[45%] rotate-[-5deg] w-[60px] h-[80px]">
+             {/* Idea Lightbulb */}
+             <svg viewBox="0 0 60 80" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-80">
+                <path d="M15 30 A 20 20 0 1 1 45 30 L 40 50 L 20 50 L 15 30 Z" strokeLinecap="round" />
+                <path d="M22 55 L38 55 M24 60 L36 60 M28 65 L32 65" strokeLinecap="round" />
+                <path d="M10 10 L 5 5 M 50 10 L 55 5 M 30 5 L 30 0" strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
+             </svg>
+          </div>
+          <div className="absolute top-[12%] right-[35%] rotate-[10deg] w-[100px] h-[40px]">
+              {/* Chemistry H2O Doodle */}
+              <svg viewBox="0 0 100 40" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-full h-full opacity-60">
+                 <path d="M10 20 L 30 20 L 50 10 M 30 20 L 50 30" strokeLinecap="round" />
+                 <circle cx="10" cy="20" r="5" />
+                 <circle cx="50" cy="10" r="3" />
+                 <circle cx="50" cy="30" r="3" />
+              </svg>
+          </div>
 
-       {/* 3. Arrow - Middle Left */}
-       <div className="absolute top-[45%] left-[-20px] md:left-[5%] text-black/5 dark:text-white/5 rotate-[30deg] w-[100px] h-[60px] pointer-events-none hidden md:block">
-           <svg viewBox="0 0 100 60" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full">
-               <path d="M10 30 Q 50 10 90 30 M 70 15 L 90 30 L 75 45" strokeLinecap="round" strokeLinejoin="round"/>
-           </svg>
-       </div>
+          {/* Top Right Cluster */}
+          <div className="absolute top-[5%] right-[2%] md:right-[8%] rotate-[5deg] w-[140px] h-[140px]">
+              {/* Geometric Cube Attempt */}
+              <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-70">
+                  <path d="M20 30 L50 10 L80 30 L80 70 L50 90 L20 70 Z M20 30 L50 50 L80 30 M50 50 L50 90" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+          </div>
+          <div className="absolute top-[18%] right-[8%] md:right-[15%] rotate-[-15deg] w-[80px] h-[80px]">
+               {/* Shading Lines */}
+               <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" strokeWidth="0.5" className="w-full h-full opacity-50">
+                   <path d="M10 10 L20 70 M20 10 L30 70 M30 10 L40 70 M40 10 L50 70 M50 10 L60 70" strokeLinecap="round" />
+               </svg>
+          </div>
+          <div className="absolute top-[2%] right-[20%] md:right-[25%] rotate-[25deg] w-[50px] h-[50px]">
+             {/* Music Note */}
+             <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-full h-full opacity-70">
+                <ellipse cx="15" cy="40" rx="6" ry="4" transform="rotate(-20 15 40)" />
+                <path d="M20 38 L20 10 L35 15 L35 43" strokeLinecap="round" strokeLinejoin="round" />
+                <ellipse cx="30" cy="45" rx="6" ry="4" transform="rotate(-20 30 45)" />
+                <path d="M20 15 L35 20" strokeWidth="2" strokeLinecap="round" />
+             </svg>
+          </div>
 
-       {/* 4. Zigzag - Top Right */}
-       <div className="absolute top-[20%] right-[5%] md:right-[10%] text-black/5 dark:text-white/5 rotate-[-5deg] w-[80px] h-[80px] pointer-events-none">
-           <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="3" className="w-full h-full">
-               <path d="M10 50 L30 20 L50 80 L70 20 L90 50" strokeLinecap="round" strokeLinejoin="round"/>
-           </svg>
-       </div>
+          {/* Middle Left */}
+          <div className="absolute top-[35%] left-[2%] rotate-[45deg] w-[180px] h-[80px]">
+               {/* Big Arrow */}
+               <svg viewBox="0 0 200 80" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full opacity-80">
+                   <path d="M20 40 Q 100 10 160 40 M 140 25 L 160 40 L 140 55" strokeLinecap="round" strokeLinejoin="round"/>
+               </svg>
+          </div>
+          <div className="absolute top-[42%] left-[10%] md:left-[15%] rotate-[-5deg] w-[50px] h-[50px]">
+              {/* Circle */}
+              <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-60">
+                 <circle cx="25" cy="25" r="20" />
+                 <path d="M25 25 L25 25" strokeWidth="2" /> 
+              </svg>
+          </div>
+          <div className="absolute top-[55%] left-[5%] rotate-[-20deg] w-[100px] h-[60px]">
+              {/* "Plan A" Text-ish */}
+              <svg viewBox="0 0 100 60" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-50">
+                  <path d="M10 50 L10 20 L25 20 L30 30 L25 40 L10 40" strokeLinejoin="round"/> {/* P */}
+                  <path d="M35 10 L35 50 M35 50 L50 50" strokeLinecap="round"/> {/* L */}
+                  <path d="M60 50 L70 20 L80 50 M65 40 L75 40" strokeLinecap="round" strokeLinejoin="round"/> {/* A */}
+              </svg>
+          </div>
 
-       {/* 5. Circle Scribble - Bottom Left */}
-       <div className="absolute bottom-[20%] left-[10%] text-black/5 dark:text-white/5 w-[100px] h-[100px] pointer-events-none hidden md:block">
-            <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full">
-                <path d="M50 10 C 20 10 10 40 10 50 C 10 80 40 90 50 90 C 80 90 90 60 90 50 C 90 30 70 10 55 15" strokeLinecap="round" />
-            </svg>
-       </div>
+          {/* Middle Right */}
+          <div className="absolute top-[38%] right-[2%] rotate-[-10deg] w-[150px] h-[100px]">
+               {/* Flowchart Box */}
+               <svg viewBox="0 0 150 100" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-70">
+                   <rect x="20" y="20" width="100" height="60" rx="5" />
+                   <path d="M120 50 L140 50 M135 45 L140 50 L135 55" strokeLinecap="round" />
+               </svg>
+          </div>
+          <div className="absolute top-[50%] right-[8%] md:right-[12%] rotate-[40deg] w-[60px] h-[120px]">
+             {/* DNA Helix */}
+             <svg viewBox="0 0 60 120" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-full h-full opacity-40">
+                <path d="M10 10 Q 50 30 10 50 Q 50 70 10 90 Q 50 110 10 130" />
+                <path d="M50 10 Q 10 30 50 50 Q 10 70 50 90 Q 10 110 50 130" />
+                <path d="M15 20 L45 20 M15 40 L45 40 M15 60 L45 60 M15 80 L45 80 M15 100 L45 100" strokeWidth="0.5" />
+             </svg>
+          </div>
+          
+          {/* Bottom Left Area */}
+          <div className="absolute bottom-[10%] left-[2%] md:left-[5%] rotate-[180deg] w-[200px] h-[200px] opacity-40">
+              {/* Large Scribble Mess */}
+              <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" strokeWidth="0.6" className="w-full h-full">
+                  <path d="M50 150 C 50 100 150 100 150 50 C 100 50 50 100 100 150 C 150 100 100 50 50 100" strokeLinecap="round" />
+                  <path d="M40 140 C 60 180 160 160 140 40" strokeLinecap="round" />
+              </svg>
+          </div>
+          <div className="absolute bottom-[25%] left-[10%] md:left-[20%] rotate-[10deg] w-[80px] h-[40px]">
+               {/* Underline Emphasis */}
+               <svg viewBox="0 0 100 40" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full opacity-70">
+                   <path d="M10 20 Q 50 30 90 20" strokeLinecap="round" />
+                   <path d="M15 30 Q 50 40 85 30" strokeLinecap="round" />
+               </svg>
+          </div>
+          <div className="absolute bottom-[5%] left-[20%] md:left-[25%] rotate-[-5deg] w-[70px] h-[50px]">
+             {/* Planet (Saturn) */}
+             <svg viewBox="0 0 70 50" fill="none" stroke="currentColor" strokeWidth="0.9" className="w-full h-full opacity-60">
+                 <circle cx="35" cy="25" r="15" />
+                 <ellipse cx="35" cy="25" rx="30" ry="8" transform="rotate(-15 35 25)" />
+             </svg>
+          </div>
 
+          {/* Bottom Center-ish */}
+          <div className="absolute bottom-[2%] left-[45%] rotate-[5deg] w-[100px] h-[60px]">
+              {/* E=mc2 */}
+              <svg viewBox="0 0 100 60" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-50">
+                  <path d="M10 10 L30 10 M10 10 L10 30 L25 30 M10 30 L10 50 L30 50" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M40 25 L50 25 M40 35 L50 35" strokeLinecap="round"/>
+                  <path d="M60 50 L60 20 L70 30 L80 20 L80 50" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M90 20 C 85 20 85 30 90 30 L85 40 L95 40" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+          </div>
+
+          {/* Bottom Right Area */}
+          <div className="absolute bottom-[8%] right-[5%] md:right-[8%] rotate-[-20deg] w-[120px] h-[120px]">
+              {/* Star doodle */}
+               <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-80">
+                   <path d="M50 10 L60 40 L90 40 L65 60 L75 90 L50 70 L25 90 L35 60 L10 40 L40 40 Z" strokeLinecap="round" strokeLinejoin="round"/>
+                   {/* Correction scratch */}
+                   <path d="M20 50 L80 50 M30 40 L70 60" strokeWidth="0.5" opacity="0.5"/>
+               </svg>
+          </div>
+          <div className="absolute bottom-[25%] right-[20%] md:right-[25%] rotate-[30deg] w-[60px] h-[60px]">
+              {/* Tic Tac Toe Grid */}
+              <svg viewBox="0 0 60 60" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full opacity-60">
+                   <path d="M20 10 L20 50 M40 10 L40 50 M10 20 L50 20 M10 40 L50 40" strokeLinecap="round" />
+                   <path d="M25 25 L35 35 M35 25 L25 35" strokeWidth="1.5" /> {/* X */}
+                   <circle cx="45" cy="45" r="4" strokeWidth="1.5" /> {/* O */}
+              </svg>
+          </div>
+          <div className="absolute top-[80%] right-[35%] md:right-[40%] rotate-[15deg] w-[40px] h-[40px]">
+             {/* Small Cube */}
+             <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="0.8" className="w-full h-full opacity-50">
+                 <rect x="5" y="15" width="20" height="20" />
+                 <rect x="15" y="5" width="20" height="20" />
+                 <path d="M5 15 L15 5 M25 15 L35 5 M25 35 L35 25 M5 35 L15 25" />
+             </svg>
+          </div>
+
+          {/* Center Background Noise (Very faint) */}
+          <div className="absolute top-[30%] left-[30%] w-[40%] h-[40%] opacity-20 pointer-events-none">
+                <svg viewBox="0 0 400 400" fill="none" stroke="currentColor" strokeWidth="0.5" className="w-full h-full">
+                     <path d="M50 100 Q 200 50 350 100 T 350 300" strokeDasharray="10 10" />
+                     <path d="M100 50 L 50 350" strokeDasharray="5 5" />
+                </svg>
+          </div>
+       </div>
 
        {/* --- Main Content --- */}
-       <div className="z-10 flex flex-col items-center justify-center h-full px-6 text-center mt-[-20px] md:mt-0">
+       <div className="flex-1 z-10 flex flex-col items-center justify-center w-full px-6 text-center py-12 relative">
           
-          <h1 className="text-4xl md:text-7xl font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 leading-tight max-w-4xl tracking-tight transition-colors duration-300">
+          <h1 className="text-4xl md:text-7xl font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 leading-tight max-w-4xl tracking-tight">
              Turn your{' '}
              <span 
-               className="inline-block text-[#ED0C14] transition-all duration-500 min-w-[3ch] md:min-w-[4ch] text-left"
+               className="inline-block text-[#ED0C14] min-w-[3ch] md:min-w-[4ch] text-left relative"
                style={{ 
                    fontFamily: FONTS[fontIndex],
                    transform: 'rotate(-2deg)',
@@ -125,17 +270,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
                }}
              >
                handwriting
+               {/* Underline for the dynamic text */}
+               <svg className="absolute -bottom-2 left-0 w-full h-[8px] text-[#ED0C14] opacity-60" viewBox="0 0 100 10" preserveAspectRatio="none">
+                   <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="2" fill="none" />
+               </svg>
              </span>{' '}
              into font.
           </h1>
 
-          <p className="text-[16px] md:text-lg text-gray-500 dark:text-gray-400 mb-8 md:mb-10 max-w-lg mx-auto font-medium leading-relaxed transition-colors duration-300">
+          <p className="text-[16px] md:text-lg text-gray-500 dark:text-gray-400 mb-8 md:mb-10 max-w-lg mx-auto font-medium leading-relaxed">
              Create your own unique digital typeface in minutes. Draw, preview, and export as a standard font file.
           </p>
           
           <button 
              onClick={onEnterApp}
-             className="group relative inline-flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-[15px] font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95"
+             className="group relative inline-flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-[15px] font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200"
           >
              <span>Try it now</span>
              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -143,9 +292,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
        </div>
 
        {/* --- Footer --- */}
-       <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10 pointer-events-auto">
-           <p className="text-[13px] font-medium text-gray-400 dark:text-neutral-600">
-               Made with <a href="https://x.com/dahsmartgirl" target="_blank" rel="noopener noreferrer" className="text-[#ED0C14] hover:text-[#ff4d54] underline underline-offset-2 transition-colors">Ileri</a>
+       <div className="shrink-0 py-6 flex justify-center z-10 relative mt-auto">
+           <p className="text-[13px] font-medium text-gray-400 dark:text-neutral-600 flex items-center gap-1">
+               Made with ♡ by <a href="https://x.com/dahsmartgirl" target="_blank" rel="noopener noreferrer" className="text-[#ED0C14] hover:text-[#ff4d54] underline underline-offset-2 decoration-[0.5px]">Ileri</a>
            </p>
        </div>
 
