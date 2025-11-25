@@ -4,13 +4,17 @@ import { CHAR_SET, FontMap, Stroke } from './types';
 import DrawingPad from './components/DrawingPad';
 import CharacterGrid from './components/CharacterGrid';
 import PreviewArea from './components/PreviewArea';
+import LandingPage from './components/LandingPage';
 import { generateFont, generateFontFamilyZip, downloadFile, centerStrokes } from './utils/svgHelpers';
 import { Download, X, CheckCircle2, FileArchive, ChevronLeft, ChevronRight, Menu, RotateCcw, Sun, Moon, PenLine, Check } from 'lucide-react';
 
 type ViewMode = 'CANVAS' | 'PREVIEW';
+type AppView = 'LANDING' | 'APP';
 
 const App: React.FC = () => {
   // --- STATE ---
+  const [appView, setAppView] = useState<AppView>('LANDING');
+
   const [viewMode, setViewMode] = useState<ViewMode>('CANVAS');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar toggle
   
@@ -229,6 +233,10 @@ const App: React.FC = () => {
   const completedCount = CHAR_SET.filter(c => fontMap[c] && fontMap[c].strokes.length > 0).length;
   const progressPercent = Math.round((completedCount/CHAR_SET.length)*100);
 
+  if (appView === 'LANDING') {
+      return <LandingPage onEnterApp={() => setAppView('APP')} />;
+  }
+
   return (
     <div className="w-full h-[100dvh] bg-white dark:bg-neutral-950 flex flex-col font-['Inter'] overflow-hidden">
       
@@ -240,8 +248,12 @@ const App: React.FC = () => {
                 <Menu size={20} />
             </button>
             
-            {/* Brand Logo */}
-            <div className="flex items-center select-none overflow-visible shrink-0">
+            {/* Brand Logo - Click to go back to landing page */}
+            <div 
+              onClick={() => setAppView('LANDING')}
+              className="flex items-center select-none overflow-visible shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+              title="Back to Home"
+            >
                 <div className="overflow-visible flex items-center shrink-0">
                     <svg 
                       viewBox="0 0 90 25" 
@@ -317,9 +329,9 @@ const App: React.FC = () => {
                  <div className="h-[40px] relative w-full flex items-center justify-between pr-2 shrink-0">
                       {showResetConfirm ? (
                           /* Bubble Popup Animation */
-                          <div className="w-full h-full relative bg-[#FAFAFA] dark:bg-neutral-800 rounded-[30px] animate-in fade-in zoom-in-95 duration-200 origin-center">
-                               <div className="absolute left-[14px] top-[4px] inline-flex items-center gap-[13px]">
-                                   <div className="text-black dark:text-white text-[14px] font-medium font-['Inter'] leading-[19.60px] whitespace-nowrap">
+                          <div className="w-full h-full relative bg-[#FAFAFA] dark:bg-neutral-800 rounded-[30px] animate-in fade-in zoom-in-95 duration-200 origin-center scale-90">
+                               <div className="absolute inset-0 flex items-center justify-start pl-[14px]">
+                                   <div className="text-black dark:text-white text-[14px] font-medium font-['Inter'] leading-[19.60px] whitespace-nowrap mr-[13px]">
                                       Are you sure?
                                    </div>
                                    <div className="flex items-center gap-2">
@@ -349,7 +361,7 @@ const App: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={handleResetTrigger}
-                                    className="text-gray-400 hover:text-red-600 p-2 relative z-50 cursor-pointer"
+                                    className="text-gray-400 hover:text-red-600 p-2 relative z-50 cursor-pointer transition-transform hover:scale-110 active:scale-95 duration-200 ease-spring"
                                     title="Reset All"
                                     aria-label="Reset All Progress"
                                   >
