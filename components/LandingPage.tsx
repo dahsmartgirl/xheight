@@ -343,7 +343,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
   const marginColor = theme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)';
 
   return (
-    <div className="relative w-full h-full bg-[#F0F0F0] dark:bg-[#1a1a1a] flex flex-col font-['Inter'] overflow-hidden">
+    <div className="relative w-full h-[100dvh] bg-[#F0F0F0] dark:bg-[#1a1a1a] flex flex-col font-['Inter'] overflow-hidden">
        
        <PaperTextureDefs />
 
