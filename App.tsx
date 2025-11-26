@@ -99,7 +99,7 @@ const App: React.FC = () => {
   };
 
   const triggerConfetti = () => {
-    const duration = 2500;
+    const duration = 1000;
     const end = Date.now() + duration;
 
     (function frame() {
