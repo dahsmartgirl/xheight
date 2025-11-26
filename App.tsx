@@ -261,9 +261,10 @@ const App: React.FC = () => {
               title="Back to Home"
             >
                 <div className="overflow-visible flex items-center shrink-0">
-                    {/* Updated ViewBox and Fill Logic to Fix Clipping */}
                     <svg 
-                      viewBox="-2 -2 94 29" 
+                      width="85" 
+                      height="26" 
+                      viewBox="0 0 85 26" 
                       fill="none" 
                       xmlns="http://www.w3.org/2000/svg" 
                       className="w-auto h-[16px] lg:h-[20px] block overflow-visible"

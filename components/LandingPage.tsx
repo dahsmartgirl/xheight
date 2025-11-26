@@ -384,14 +384,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
        {/* --- Header --- */}
        <header className="h-[54px] shrink-0 flex items-center justify-between px-4 lg:px-[24px] z-50 relative w-full">
             {/* Logo */}
-            <div className="flex items-center select-none shrink-0 min-w-[70px] text-black dark:text-white">
+            <div className="flex items-center select-none shrink-0 w-auto text-black dark:text-white">
                  <div className="flex items-center shrink-0 w-full overflow-visible">
                      {/* Corrected SVG for Landing Page */}
                     <svg 
-                      viewBox="-2 -2 94 29" 
+                      width="85" 
+                      height="26" 
+                      viewBox="0 0 100 29"
                       fill="none" 
                       xmlns="http://www.w3.org/2000/svg" 
-                      className="w-auto h-[16px] lg:h-[20px] block overflow-visible"
+                      className="w-auto h-[16px] lg:h-[20px] block overflow-visible min-w-[90px]"
                     >
                         <path d="M8.18462 9.47875V12.2296L2.72821 17.7314H0V14.9805L5.45641 9.47875H8.18462ZM17.4605 14.9805V17.7314H14.7323L9.2759 12.2296V9.47875H12.0041L17.4605 14.9805ZM8.18462 5.62752V8.3784H5.45641L0 2.87664V0.125756H2.72821L8.18462 5.62752ZM17.4605 2.87664L12.0041 8.3784H9.2759V5.62752L14.7323 0.125756H17.4605V2.87664Z" fill="#ED0C14"/>
                         <path className="fill-current" d="M18.3585 13.5563C18.2088 13.5563 18.134 13.4809 18.134 13.33C18.134 12.894 18.1756 12.5419 18.2587 12.2736C18.3419 12.0054 18.4666 11.8628 18.6329 11.8461C19.4976 11.7119 20.3872 11.5862 21.3018 11.4688C22.2331 11.3347 23.131 11.2257 23.9957 11.1419C24.1288 11.1419 24.2119 11.1754 24.2452 11.2425C24.2951 11.2928 24.32 11.3598 24.32 11.4437C24.32 11.8964 24.2867 12.2401 24.2202 12.4748C24.1537 12.6928 24.0207 12.8186 23.8211 12.8521C22.973 12.9695 22.0668 13.0952 21.1023 13.2294C20.1544 13.3635 19.2398 13.4725 18.3585 13.5563Z" />
@@ -441,13 +443,25 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
                 Create your own unique digital typeface in minutes. Draw, preview, and export as a standard font file.
              </p>
              
-             <button 
-                onClick={onEnterApp}
-                className="group relative inline-flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-[15px] font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-transform duration-200"
-             >
-                <span>Try it now</span>
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-             </button>
+             <div className="flex flex-col sm:flex-row items-center gap-4">
+                 <button 
+                    onClick={onEnterApp}
+                    className="group relative inline-flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-[15px] font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-transform duration-200"
+                 >
+                    <span>Try it now</span>
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                 </button>
+
+                 <button
+                    data-tally-open="9qNqdY" 
+                    data-tally-layout="modal" 
+                    data-tally-auto-close="0" 
+                    data-tally-form-events-forwarding="1"
+                    className="px-6 py-2.5 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white border border-gray-200 dark:border-neutral-800 rounded-full text-[15px] font-semibold shadow-sm hover:bg-gray-50 dark:hover:bg-neutral-800 hover:scale-105 active:scale-95 transition-all duration-200"
+                 >
+                    Join the waitlist
+                 </button>
+             </div>
           </div>
        </main>
 
