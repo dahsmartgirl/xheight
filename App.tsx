@@ -6,7 +6,7 @@ import CharacterGrid from './components/CharacterGrid';
 import PreviewArea from './components/PreviewArea';
 import LandingPage from './components/LandingPage';
 import { generateFont, generateFontFamilyZip, downloadFile, centerStrokes } from './utils/svgHelpers';
-import { Download, X, CheckCircle2, FileArchive, ChevronLeft, ChevronRight, Menu, RotateCcw, Sun, Moon, PenLine, Check } from 'lucide-react';
+import { Download, X, FileArchive, ChevronLeft, ChevronRight, Menu, RotateCcw, Sun, Moon, Check } from 'lucide-react';
 
 type ViewMode = 'CANVAS' | 'PREVIEW';
 type AppView = 'LANDING' | 'APP';

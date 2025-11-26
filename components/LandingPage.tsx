@@ -416,9 +416,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
        </header>
 
        {/* --- Main Content --- */}
-       <div className="flex-1 w-full relative z-10 overflow-y-auto scrollbar-none flex flex-col items-center justify-center">
+       <main className="flex-1 w-full relative z-10 overflow-y-auto scrollbar-none">
           <div className="w-full min-h-full flex flex-col items-center justify-center px-6 py-12 text-center">
-             <h1 className="text-[32px] md:text-[62px] font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 leading-tight max-w-4xl tracking-tight mx-auto">
+             <h1 className="text-[24px] md:text-[54px] font-bold text-neutral-900 dark:text-white mb-6 md:mb-8 leading-tight max-w-4xl tracking-tight mx-auto">
                 Turn your{' '}
                 <span 
                   className="inline-block text-[#ED0C14] min-w-[3ch] md:min-w-[4ch] text-left relative"
@@ -449,14 +449,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, toggleTheme, them
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
              </button>
           </div>
-       </div>
+       </main>
 
        {/* --- Footer --- */}
-       <div className="shrink-0 py-6 flex justify-center z-10 relative w-full">
+       <footer className="shrink-0 py-6 flex justify-center z-10 relative w-full">
            <p className="text-[13px] font-medium text-gray-400 dark:text-neutral-600 flex items-center gap-1">
                Made with ♡ by <a href="https://x.com/dahsmartgirl" target="_blank" rel="noopener noreferrer" className="text-[#ED0C14] hover:text-[#ff4d54] underline underline-offset-2 decoration-[0.5px]">Ileri</a>
            </p>
-       </div>
+       </footer>
 
     </div>
   );
