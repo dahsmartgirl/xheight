@@ -1,7 +1,6 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { FontMap } from '../types';
-import { strokesToPath, smoothStrokes, alignStrokes } from '../utils/svgHelpers';
+import { strokesToPath, calculateAvgScale, normalizeStrokes } from '../utils/svgHelpers';
 import { Type, MoveHorizontal, AlignLeft, AlignCenter, AlignRight, RotateCcw, Plus, Minus } from 'lucide-react';
 import { generateSampleText } from '../services/geminiService';
 
@@ -87,20 +86,26 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
   const [fontSize, setFontSize] = useState(64);
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('left');
 
+  const avgScale = useMemo(() => calculateAvgScale(fontMap), [fontMap]);
+
   const processedFontMap = useMemo(() => {
     const newMap: any = {};
     Object.keys(fontMap).forEach(key => {
         const data = fontMap[key];
         if (data.strokes.length > 0) {
-            const smoothed = smoothStrokes(data.strokes);
-            const aligned = alignStrokes(smoothed, data.canvasWidth);
-            newMap[key] = { ...data, strokes: aligned };
+            // Apply the exact same normalization as Export
+            const normalized = normalizeStrokes(data.strokes, key, avgScale);
+            newMap[key] = { 
+                strokes: normalized.strokes,
+                advanceWidth: normalized.advanceWidth,
+                height: normalized.height 
+            };
         } else {
-            newMap[key] = data;
+            newMap[key] = null;
         }
     });
     return newMap;
-  }, [fontMap]);
+  }, [fontMap, avgScale]);
 
   return (
     <div className="w-full h-full relative flex flex-col">
@@ -120,12 +125,6 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                         className="bg-white dark:bg-neutral-800 rounded-[26px] h-[32px] px-3 sm:px-[14px] flex items-center gap-[6px] shadow-sm"
                     >
                         <RotateCcw size={16} className="text-[#ED0C14]" strokeWidth={2.5} />
-                        {/* 
-                            Text Visibility Logic:
-                            - < 450px: Visible (Stacked)
-                            - 450px - 640px: Hidden (Row, constrained space)
-                            - >= 640px: Visible (Row, ample space)
-                        */}
                         <span className="text-[12px] lg:text-[13px] font-['Inter'] font-medium text-black dark:text-white block min-[450px]:hidden sm:block">Randomize</span>
                     </button>
                 </div>
@@ -200,7 +199,7 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                                         return <div key={cIdx} style={{ width: fontSize * 0.4, height: fontSize }}></div>;
                                     }
 
-                                    if (!data || data.strokes.length === 0) {
+                                    if (!data) {
                                         return (
                                             <div key={cIdx} className="flex items-end justify-center pb-1 text-gray-200 dark:text-neutral-700 border-b border-gray-100 dark:border-neutral-800" style={{ width: fontSize * 0.5, height: fontSize }}>
                                                 <span style={{ fontSize: fontSize * 0.4 }}>{char}</span>
@@ -208,27 +207,33 @@ const PreviewArea: React.FC<PreviewAreaProps> = ({ fontMap, letterSpacing, setLe
                                         );
                                     }
 
-                                    const scale = fontSize / data.canvasHeight;
-                                    const charWidth = data.canvasWidth * scale;
-                                    const charHeight = fontSize;
-                                    const baseAdvance = charWidth * 0.75;
+                                    // Rendering using normalized 1000-unit coordinates
+                                    // viewBox is 0 0 width 1000
+                                    // Height is fontSize
+                                    // Width is (advanceWidth / 1000) * fontSize
+                                    
+                                    const scaleRatio = fontSize / 1000;
+                                    const displayWidth = data.advanceWidth * scaleRatio;
+                                    const displayHeight = fontSize; // 1000 * scaleRatio
+                                    
+                                    // Apply user-defined letter spacing
                                     const spacingAdjustment = (letterSpacing / 100) * fontSize;
-                                    const containerWidth = Math.max(0, baseAdvance + spacingAdjustment);
+                                    const containerWidth = Math.max(0, displayWidth + spacingAdjustment);
 
                                     return (
-                                        <div key={cIdx} className="relative flex-shrink-0" style={{ width: containerWidth, height: charHeight }}>
+                                        <div key={cIdx} className="relative flex-shrink-0" style={{ width: containerWidth, height: displayHeight }}>
                                             <svg 
-                                              viewBox={`0 0 ${charWidth} ${charHeight}`} 
-                                              width={charWidth}
-                                              height={charHeight}
+                                              viewBox={`0 0 ${data.advanceWidth} 1000`} 
+                                              width={displayWidth}
+                                              height={displayHeight}
                                               className="overflow-visible"
                                               style={{ position: 'absolute', left: 0, top: 0, maxWidth: 'none' }}
                                             >
                                                 <path 
-                                                  d={strokesToPath(data.strokes, scale, 0, 0)} 
+                                                  d={strokesToPath(data.strokes, 1, 0, 0)} 
                                                   fill="currentColor"
                                                   stroke="currentColor" 
-                                                  strokeWidth="2"
+                                                  strokeWidth="20" // In 1000-unit space, 20 is reasonably thin (2% of em)
                                                   strokeLinecap="round" 
                                                   strokeLinejoin="round" 
                                                   style={{ fill: 'none' }} 
