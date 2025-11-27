@@ -350,7 +350,7 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
     const unitsPerEm = 1000;
     const ascender = 800;
     const descender = -200;
-    const { thickness = 12, slant = 0, styleName = 'Regular' } = options;
+    const { thickness = 50, slant = 0, styleName = 'Regular' } = options;
 
     const glyphs: opentype.Glyph[] = [];
 
@@ -430,7 +430,7 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
 
     // 1. Regular
     const regularBuffer = generateFont(fontName, fontMap, letterSpacing, {
-        thickness: 12,
+        thickness: 50,
         slant: 0,
         styleName: 'Regular'
     });
@@ -438,7 +438,7 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
 
     // 2. Bold (Thicker strokes)
     const boldBuffer = generateFont(fontName, fontMap, letterSpacing, {
-        thickness: 28, // Beefier bold
+        thickness: 90, // Beefier bold
         slant: 0,
         styleName: 'Bold'
     });
@@ -446,7 +446,7 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
 
     // 3. Italic (Slanted)
     const italicBuffer = generateFont(fontName, fontMap, letterSpacing, {
-        thickness: 12,
+        thickness: 50,
         slant: 0.25, 
         styleName: 'Italic'
     });
