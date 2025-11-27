@@ -235,7 +235,7 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
 
     const glyphs: opentype.Glyph[] = [];
 
-    // .notdef glyph (Required for valid font)
+    // .notdef glyph
     const notdefPath = new opentype.Path();
     notdefPath.moveTo(200, 0);
     notdefPath.lineTo(200, 700);
@@ -250,74 +250,162 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
         path: notdefPath
     }));
 
-    // Space Glyph (Critical for word spacing)
+    // Space Glyph
     glyphs.push(new opentype.Glyph({
         name: 'space',
         unicode: 32,
-        advanceWidth: 400 + (letterSpacing * 10), // Generous space width
+        advanceWidth: 400 + (letterSpacing * 10), 
         path: new opentype.Path()
     }));
 
+    // --- METRICS CALCULATION PASS ---
+    // We categorize characters to determine how to scale them to "snap" to a consistent font size.
+    // This solves the issue of small drawings resulting in tiny fonts.
+    
+    const CAPS_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?";
+    const SMALL_CHARS = "acemnorsuvwxz";
+    const TALL_CHARS = "bdfhiklt";
+    const DESC_CHARS = "gjpqy";
+
+    interface CharMetric {
+        strokes: Stroke[];
+        bbox: { minX: number, maxX: number, minY: number, maxY: number };
+        scale: number;
+    }
+
+    const charMetrics: Record<string, CharMetric> = {};
+    const scaleSamples: number[] = [];
+
     CHAR_SET.forEach(char => {
         const data = fontMap[char];
-        if (data && data.strokes.length > 0) {
-            
-            // 1. Smooth the strokes
-            const smoothedStrokes = smoothStrokes(data.strokes);
+        if (!data || data.strokes.length === 0) return;
 
-            // 2. Metrics Calculation
-            // Instead of using the full canvas width, we calculate the ACTUAL width of the drawing.
-            // This fixes the "unnecessary spacing" and overlapping issues.
-            
-            // First, find the bounding box of the strokes in Canvas coordinates
-            let minX = Infinity, maxX = -Infinity;
-            smoothedStrokes.forEach(s => s.points.forEach(p => {
-                if (p.x < minX) minX = p.x;
-                if (p.x > maxX) maxX = p.x;
-            }));
+        const smoothedStrokes = smoothStrokes(data.strokes);
 
-            // Scale factor to convert canvas pixels to font units
-            const scale = unitsPerEm / data.canvasHeight;
-            
-            // Font Units Bounding Box
-            const fMinX = minX * scale;
-            const fMaxX = maxX * scale;
-            const fWidth = fMaxX - fMinX;
+        // Calculate Bounding Box of the INK, not the canvas
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        smoothedStrokes.forEach(s => s.points.forEach(p => {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        }));
 
-            // Side Bearings (Padding around the letter)
-            const leftSideBearing = 50; 
-            const rightSideBearing = 50 + (letterSpacing * 10);
+        if (minX === Infinity) return; // Should not happen given length check
 
-            // Calculate shift needed to place the glyph at leftSideBearing
-            // We want the leftmost point (fMinX) to move to (leftSideBearing)
-            // So shift = leftSideBearing - fMinX
-            // However, createOutlineFromStroke does its own transforms. 
-            // We need to pass a dx that applies in Font Units.
-            
-            // Logic: The transform function takes `pt.x * scale`. 
-            // We want `(pt.x * scale) + dx` to equal `leftSideBearing` when `pt.x` is `minX`.
-            const dx = leftSideBearing - fMinX;
+        const height = maxY - minY;
+        const safeHeight = height < 1 ? 1 : height; // Prevent div by zero
 
-            const glyphPath = new opentype.Path();
+        let targetHeight = 700; // Default to Cap Height
+        let scale = 1;
 
-            // 3. Convert to Outlines
-            smoothedStrokes.forEach(stroke => {
-                // We pass dy=0 because vertical centering is already handled by 'centerStrokes' in the app
-                const outline = createOutlineFromStroke(stroke, scale, ascender, thickness, slant, dx, 0);
-                glyphPath.extend(outline);
-            });
-
-            // 4. Calculate Advance Width
-            // Width = LSB + Glyph Width + RSB
-            const advanceWidth = Math.round(leftSideBearing + fWidth + rightSideBearing);
-
-            glyphs.push(new opentype.Glyph({
-                name: char,
-                unicode: char.codePointAt(0) || 0,
-                advanceWidth: advanceWidth, 
-                path: glyphPath
-            }));
+        if (CAPS_CHARS.includes(char)) {
+            // Scale Caps/Numbers to fill ~70% of Em
+            targetHeight = 700;
+            scale = targetHeight / safeHeight;
+            scaleSamples.push(scale);
+        } else if (SMALL_CHARS.includes(char)) {
+            // Scale x-height chars to fill ~50% of Em
+            targetHeight = 500;
+            scale = targetHeight / safeHeight;
+            scaleSamples.push(scale);
+        } else if (TALL_CHARS.includes(char)) {
+            // Scale ascenders to ~75% of Em (slightly taller than caps often)
+            targetHeight = 750;
+            scale = targetHeight / safeHeight;
+            scaleSamples.push(scale);
+        } else if (DESC_CHARS.includes(char)) {
+            // Scale descenders (g, j, p, q, y)
+            // They usually occupy x-height + descender length -> ~700 total visual height
+            targetHeight = 700; 
+            scale = targetHeight / safeHeight;
+            scaleSamples.push(scale);
+        } else {
+            // Punctuation (.,)
+            // We do not calculate individual scale here to prevent dots becoming huge balls.
+            // We will apply the average scale of letters in the next pass.
+            scale = 0; 
         }
+
+        charMetrics[char] = {
+            strokes: smoothedStrokes,
+            bbox: { minX, maxX, minY, maxY },
+            scale
+        };
+    });
+
+    // Compute Average Scale from letters to apply to punctuation
+    let avgScale = 1;
+    if (scaleSamples.length > 0) {
+        avgScale = scaleSamples.reduce((a, b) => a + b, 0) / scaleSamples.length;
+    } else {
+        // Fallback: assume standard 300px canvas maps to 1000 units
+        avgScale = 1000 / 300; 
+    }
+
+    // --- GLYPH GENERATION PASS ---
+
+    Object.keys(charMetrics).forEach(char => {
+        const metric = charMetrics[char];
+        let scale = metric.scale;
+        
+        // Apply average scale to punctuation to maintain relative size
+        if (scale === 0) {
+            scale = avgScale;
+        }
+
+        // Calculate Vertical Alignment (dy)
+        // This forces the glyph to sit on the baseline or hang from x-height correctly
+        let dy = 0;
+
+        if (DESC_CHARS.includes(char)) {
+             // Descenders: Align Top (minY) to X-Height (500)
+             // y_otf_top = 800 - (minY * scale) + dy = 500
+             // dy = (minY * scale) - 300
+             dy = (metric.bbox.minY * scale) - 300;
+        } else if (char === ',') {
+             // Comma: Align Top (minY) to slightly above baseline (150)
+             // y_otf_top = 800 - (minY * scale) + dy = 150
+             // dy = (minY * scale) - 650
+             dy = (metric.bbox.minY * scale) - 650;
+        } else {
+             // Baseline Align (Caps, Small, Tall, '.', '!', '?')
+             // Align Bottom (maxY) to Baseline (0)
+             // y_otf_bottom = 800 - (maxY * scale) + dy = 0
+             // dy = (maxY * scale) - 800
+             dy = (metric.bbox.maxY * scale) - 800;
+        }
+
+        // Calculate Horizontal Metrics
+        // Determine width in Font Units
+        const fMinX = metric.bbox.minX * scale;
+        const fMaxX = metric.bbox.maxX * scale;
+        const fWidth = fMaxX - fMinX;
+
+        // Side Bearings
+        const leftSideBearing = 50; 
+        const rightSideBearing = 50 + (letterSpacing * 10);
+
+        // dx shifts the glyph horizontally so that minX aligns to LSB
+        // x_final = (x * scale) + dx. We want at x=minX, x_final = LSB.
+        // LSB = (minX * scale) + dx  =>  dx = LSB - (minX * scale)
+        const dx = leftSideBearing - fMinX;
+
+        const glyphPath = new opentype.Path();
+
+        metric.strokes.forEach(stroke => {
+            const outline = createOutlineFromStroke(stroke, scale, ascender, thickness, slant, dx, dy);
+            glyphPath.extend(outline);
+        });
+
+        const advanceWidth = Math.round(leftSideBearing + fWidth + rightSideBearing);
+
+        glyphs.push(new opentype.Glyph({
+            name: char,
+            unicode: char.codePointAt(0) || 0,
+            advanceWidth: advanceWidth, 
+            path: glyphPath
+        }));
     });
 
     const font = new opentype.Font({
