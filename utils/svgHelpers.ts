@@ -2,9 +2,6 @@ import { Stroke, FontMap, CHAR_SET, Point } from '../types';
 import opentype from 'opentype.js';
 import JSZip from 'jszip';
 
-// Helper to access Paper.js from global scope
-declare const paper: any;
-
 // --- STROKE PROCESSING HELPERS ---
 
 // Smooths points using a simple moving average algorithm to reduce jitter
@@ -35,6 +32,7 @@ export const smoothStrokes = (strokes: Stroke[]): Stroke[] => {
 const DESCENDERS = ['g', 'j', 'p', 'q', 'y', ',', 'f'];
 
 // Centers strokes both horizontally and vertically in the canvas
+// If 'char' is provided and is a descender, it applies a lower center point
 export const centerStrokes = (inputStrokes: Stroke[], width: number, height: number, char?: string): Stroke[] => {
     if (inputStrokes.length === 0) return inputStrokes;
 
@@ -47,21 +45,27 @@ export const centerStrokes = (inputStrokes: Stroke[], width: number, height: num
         if (p.y > maxY) maxY = p.y;
     }));
 
+    // Safety check
     if (minX === Infinity) return inputStrokes;
 
     const contentCenterX = minX + (maxX - minX) / 2;
     const contentCenterY = minY + (maxY - minY) / 2;
 
     const targetCenterX = width / 2;
+    
+    // Default vertical center is the middle of the canvas
     let targetCenterY = height / 2;
 
+    // Smart Descender Logic
     if (char && DESCENDERS.includes(char)) {
+        // Shift the center target down
         targetCenterY = height * 0.62;
     }
 
     const offsetX = targetCenterX - contentCenterX;
     const offsetY = targetCenterY - contentCenterY;
 
+    // Don't shift if it's already very close (prevents micro-jitters)
     if (Math.abs(offsetX) < 1 && Math.abs(offsetY) < 1) return inputStrokes;
 
     return inputStrokes.map(s => ({
@@ -81,7 +85,9 @@ export const strokesToPath = (strokes: Stroke[], scale = 1, offsetX = 0, offsetY
   return strokes.map(stroke => {
     if (stroke.points.length === 0) return '';
     
+    // Handle single dot (tap)
     if (stroke.points.length === 1) {
+       // Render as a zero-length line with round caps, effectively a dot
        const p = stroke.points[0];
        const x = (p.x * scale) + offsetX;
        const y = (p.y * scale) + offsetY;
@@ -106,8 +112,10 @@ export const SMALL_CHARS = "acemnorsuvwxz";
 export const TALL_CHARS = "bdfhiklt";
 export const DESC_CHARS = "gjpqy";
 
+// Metric Constants for 1000-unit Em Square
 const EM_HEIGHT = 1000;
 const BASELINE = 800;
+// Increased dimensions for "Large" look
 const CAP_HEIGHT = 750; 
 const X_HEIGHT = 550;
 const ASCENDER_HEIGHT = 800;
@@ -121,6 +129,7 @@ export interface NormalizedGlyph {
 export const calculateAvgScale = (fontMap: FontMap): number => {
     let sum = 0;
     let count = 0;
+    // Sample a subset of standard letters to determine how the user draws "letters"
     const sampleChars = [...CAPS_CHARS, ...SMALL_CHARS, ...TALL_CHARS, ...DESC_CHARS].filter(c => fontMap[c]);
     
     sampleChars.forEach(char => {
@@ -136,7 +145,7 @@ export const calculateAvgScale = (fontMap: FontMap): number => {
         if (minY === Infinity) return;
         
         const h = Math.max(maxY - minY, 1);
-        let target = 700; 
+        let target = 700; // Default fallback
         
         if (CAPS_CHARS.includes(char)) target = CAP_HEIGHT;
         else if (SMALL_CHARS.includes(char)) target = X_HEIGHT;
@@ -147,6 +156,7 @@ export const calculateAvgScale = (fontMap: FontMap): number => {
         count++;
     });
 
+    // Default to a scale assuming 300px canvas -> 1000px em if no samples
     return count > 0 ? sum / count : (EM_HEIGHT / 300);
 };
 
@@ -155,6 +165,7 @@ export const normalizeStrokes = (strokes: Stroke[], char: string, avgScale: numb
 
     const smoothed = smoothStrokes(strokes);
 
+    // 1. Calculate BBox
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     smoothed.forEach(s => s.points.forEach(p => {
         if (p.x < minX) minX = p.x;
@@ -168,33 +179,59 @@ export const normalizeStrokes = (strokes: Stroke[], char: string, avgScale: numb
     const rawH = Math.max(maxY - minY, 1);
     const rawW = maxX - minX;
 
+    // 2. Determine Scale & Alignment
     let scale = 1;
-    let targetY = 0; 
+    let targetY = 0; // Where the "reference point" of the glyph should land in 0-1000 space
+    
+    // Helper: We want to map the drawn glyph to the standardized coordinate system
+    // SVG System: 0 is Top, 1000 is Bottom. Baseline is at 800.
     
     if (CAPS_CHARS.includes(char)) {
         scale = CAP_HEIGHT / rawH;
+        // Align Bottom to Baseline
         targetY = BASELINE - (rawH * scale); 
     } else if (SMALL_CHARS.includes(char)) {
         scale = X_HEIGHT / rawH;
+        // Align Bottom to Baseline
         targetY = BASELINE - (rawH * scale);
     } else if (TALL_CHARS.includes(char)) {
         scale = ASCENDER_HEIGHT / rawH;
+        // Align Bottom to Baseline
         targetY = BASELINE - (rawH * scale);
     } else if (DESC_CHARS.includes(char)) {
+        // For descenders, the "top" part usually aligns with x-height top
+        // X-Height Top is at (BASELINE - X_HEIGHT) = 250
+        // We assume the user drew the descender proportionally. 
+        // We scale it so the "body" + "tail" roughly fits the visual weight.
+        // Let's use avgScale for descenders to preserve their aspect ratio relative to other letters, 
+        // OR scale them to a safe height. 
+        // Scaling to CAP_HEIGHT usually works well for total height of descender chars.
         scale = CAP_HEIGHT / rawH;
+        // Align Top to X-Height Top (approx)
         targetY = (BASELINE - X_HEIGHT);
     } else if (char === ',') {
         scale = avgScale;
+        // Align top to baseline
+        targetY = BASELINE - (100 * (scale/3)); // Slight offset upwards? 
+        // Actually comma sits on baseline. Let's align top to baseline for simplicity?
+        // No, comma usually hangs. Top at baseline.
         targetY = BASELINE;
     } else if (char === '.') {
         scale = avgScale;
+        // Align bottom to baseline
         targetY = BASELINE - (rawH * scale);
     } else {
+        // Other Punctuation / Unknown
         scale = avgScale;
+        // Center vertically or align bottom?
+        // Default to align bottom to baseline as safe bet
         targetY = BASELINE - (rawH * scale);
     }
 
+    // 3. Apply Transform
     const offsetY = targetY - (minY * scale);
+    
+    // Left Side Bearing
     const LSB = 50; 
     const offsetX = LSB - (minX * scale);
 
@@ -205,6 +242,7 @@ export const normalizeStrokes = (strokes: Stroke[], char: string, avgScale: numb
         }))
     }));
 
+    // Right Side Bearing
     const RSB = 50;
     const advanceWidth = (rawW * scale) + LSB + RSB;
 
@@ -217,41 +255,55 @@ export const normalizeStrokes = (strokes: Stroke[], char: string, avgScale: numb
 
 // --- FONT GENERATION HELPERS ---
 
+// Helper to get angle between points
 const getAngle = (p1: Point, p2: Point) => Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
-// Generates the points for the outline of a stroke (without creating an opentype Path yet).
-// This allows us to feed the geometry into Paper.js for boolean union.
-const getStrokeOutlinePoints = (stroke: Stroke, scale: number, ascender: number, thickness: number, slant: number, dx: number = 0, dy: number = 0): {x: number, y: number}[] => {
+// Generate a closed path outline from a single line stroke
+const createOutlineFromStroke = (stroke: Stroke, scale: number, ascender: number, thickness: number, slant: number, dx: number = 0, dy: number = 0): opentype.Path => {
+    const path = new opentype.Path();
     const points = stroke.points;
-    if (points.length === 0) return [];
+    
+    if (points.length === 0) return path;
 
+    // Helper to transform coordinates (Scale + Slant + Flip Y for OTF)
     const transform = (pt: Point, offX: number, offY: number) => {
-        const x_scaled = pt.x * scale;
-        const y_scaled = pt.y * scale; 
+        // scale is applied to the point values directly if they weren't pre-scaled.
+        // In our new flow, we pass scale=1 because strokes are pre-normalized.
         
+        const x_scaled = pt.x * scale;
+        const y_scaled = pt.y * scale; // This is distance from top in SVG space
+        
+        // Add offset perpendicular to stroke angle
         const x_local = x_scaled + offX;
         const y_local = y_scaled - offY;
         
+        // Convert to font coordinates (Flip Y)
+        // ascender is 800.
+        // If y_local is 800 (baseline), y_otf = 0.
         const y_otf = ascender - y_local + dy;
+        
+        // Apply slant (Italic)
         const x_final = x_local + (y_otf * slant) + dx;
         
         return { x: x_final, y: y_otf };
     };
     
-    // Dot Case
+    // --- HANDLE DOTS ---
     if (points.length === 1 || (points.length === 2 && Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) < 2)) {
         const p = points[0];
         const r = thickness * scale * 0.8; 
+        
         const c = transform(p, 0, 0);
-        return [
-            { x: c.x, y: c.y - r },
-            { x: c.x + r, y: c.y },
-            { x: c.x, y: c.y + r },
-            { x: c.x - r, y: c.y }
-        ];
+        
+        path.moveTo(c.x, c.y - r);
+        path.lineTo(c.x + r, c.y);
+        path.lineTo(c.x, c.y + r);
+        path.lineTo(c.x - r, c.y);
+        path.close();
+        return path;
     }
 
-    // Stroke Case
+    // --- HANDLE STROKES ---
     const leftSide: {x: number, y: number}[] = [];
     const rightSide: {x: number, y: number}[] = [];
     const halfWidth = (thickness * scale) / 2;
@@ -272,13 +324,20 @@ const getStrokeOutlinePoints = (stroke: Stroke, scale: number, ascender: number,
         }
     }
 
-    // Combine left (forward) and right (backward) to form loop
-    const outlinePoints = [...leftSide];
+    // Trace the outline
+    const startL = leftSide[0];
+    path.moveTo(startL.x, startL.y);
+
+    for (let i = 1; i < leftSide.length; i++) {
+        path.lineTo(leftSide[i].x, leftSide[i].y);
+    }
+    
     for (let i = rightSide.length - 1; i >= 0; i--) {
-        outlinePoints.push(rightSide[i]);
+        path.lineTo(rightSide[i].x, rightSide[i].y);
     }
 
-    return outlinePoints;
+    path.close();
+    return path;
 };
 
 interface FontOptions {
@@ -292,10 +351,6 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
     const ascender = 800;
     const descender = -200;
     const { thickness = 50, slant = 0, styleName = 'Regular' } = options;
-
-    // Initialize Paper.js Scope for Boolean Operations
-    const scope = new paper.PaperScope();
-    scope.setup(new paper.Size(1000, 1000));
 
     const glyphs: opentype.Glyph[] = [];
 
@@ -322,6 +377,7 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
         path: new opentype.Path()
     }));
 
+    // Calculate Average Scale for Punctuation consistency
     const avgScale = calculateAvgScale(fontMap);
 
     // Generate Glyphs
@@ -329,72 +385,22 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
         const data = fontMap[char];
         if (!data || data.strokes.length === 0) return;
 
+        // Normalize the strokes (Snap to size)
         const { strokes: normalizedStrokes, advanceWidth } = normalizeStrokes(data.strokes, char, avgScale);
 
-        // Perform Boolean Union of all stroke outlines to prevent self-intersection artifacts
-        let unifiedPath: any = null;
-
-        normalizedStrokes.forEach(stroke => {
-            const outlinePoints = getStrokeOutlinePoints(stroke, 1, ascender, thickness, slant, 0, 0);
-            if (outlinePoints.length === 0) return;
-
-            // Create Paper.js Path from points
-            const p = new scope.Path(outlinePoints.map(pt => new scope.Point(pt.x, pt.y)));
-            p.closed = true;
-            
-            // Unite with existing geometry
-            if (!unifiedPath) {
-                unifiedPath = p;
-            } else {
-                const result = unifiedPath.unite(p);
-                unifiedPath.remove(); // Remove old paths from project
-                p.remove();
-                unifiedPath = result;
-            }
-        });
-
-        // Convert Paper.js Path back to Opentype Path
+        // Convert normalized SVG strokes to Font Outlines
+        // We pass scale=1 because strokes are already scaled.
+        // We pass dy=0 because strokes are already positioned vertically relative to 800 baseline.
+        // createOutlineFromStroke converts y (0..1000) to otf (800..-200) automatically.
+        
         const glyphPath = new opentype.Path();
 
-        if (unifiedPath) {
-            // unifiedPath can be a Path or CompoundPath
-            const paths = unifiedPath.className === 'CompoundPath' ? unifiedPath.children : [unifiedPath];
+        normalizedStrokes.forEach(stroke => {
+            const outline = createOutlineFromStroke(stroke, 1, ascender, thickness, slant, 0, 0);
+            glyphPath.extend(outline);
+        });
 
-            paths.forEach((p: any) => {
-                const segments = p.segments;
-                if (!segments || segments.length === 0) return;
-
-                // Paper.js winding is typically CCW for solid shapes, while TrueType expects CW.
-                // We verify area or just reverse to ensure CW for outer shells if needed.
-                // Usually simply reversing Paper's output works well for TTF export.
-                const isCCW = p.area > 0; // Check orientation if necessary, but reversing is safe for standard TTF tools
-                
-                // Start Loop
-                const start = segments[0].point;
-                glyphPath.moveTo(start.x, start.y);
-
-                // For simple polygonal outlines (which we have), just iterating points is enough.
-                // We reverse the loop iteration to flip winding from CCW to CW
-                if (isCCW) {
-                     for (let i = segments.length - 1; i >= 0; i--) {
-                         const pt = segments[i].point;
-                         if (i === segments.length - 1) {
-                             glyphPath.moveTo(pt.x, pt.y);
-                         } else {
-                             glyphPath.lineTo(pt.x, pt.y);
-                         }
-                     }
-                } else {
-                     for (let i = 1; i < segments.length; i++) {
-                        const pt = segments[i].point;
-                        glyphPath.lineTo(pt.x, pt.y);
-                     }
-                }
-                glyphPath.close();
-            });
-            unifiedPath.remove();
-        }
-
+        // Add extra spacing from user setting
         const finalAdvance = Math.round(advanceWidth + (letterSpacing * 10));
 
         glyphs.push(new opentype.Glyph({
@@ -430,15 +436,15 @@ export const generateFontFamilyZip = async (fontName: string, fontMap: FontMap, 
     });
     folder.file(`${fontName}-Regular.ttf`, regularBuffer);
 
-    // 2. Bold
+    // 2. Bold (Thicker strokes)
     const boldBuffer = generateFont(fontName, fontMap, letterSpacing, {
-        thickness: 90,
+        thickness: 90, // Beefier bold
         slant: 0,
         styleName: 'Bold'
     });
     folder.file(`${fontName}-Bold.ttf`, boldBuffer);
 
-    // 3. Italic
+    // 3. Italic (Slanted)
     const italicBuffer = generateFont(fontName, fontMap, letterSpacing, {
         thickness: 50,
         slant: 0.25, 
