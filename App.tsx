@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { CHAR_SET, FontMap, Stroke } from './types';
 import DrawingPad from './components/DrawingPad';
@@ -8,7 +7,7 @@ import LandingPage from './components/LandingPage';
 import { generateFont, generateFontFamilyZip, downloadFile, centerStrokes } from './utils/svgHelpers';
 // @ts-ignore
 import confetti from 'canvas-confetti';
-import { Download, X, FileArchive, ChevronLeft, ChevronRight, Menu, RotateCcw, Sun, Moon, Check } from 'lucide-react';
+import { Download, X, FileArchive, ChevronLeft, ChevronRight, Menu, RotateCcw, Sun, Moon, Check, Loader2 } from 'lucide-react';
 
 type ViewMode = 'CANVAS' | 'PREVIEW';
 type AppView = 'LANDING' | 'APP';
@@ -50,6 +49,7 @@ const App: React.FC = () => {
   const [nameInputState, setNameInputState] = useState<'clean' | 'dirty' | 'saved'>('clean');
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportingState, setExportingState] = useState<'IDLE' | 'TTF' | 'ZIP'>('IDLE');
 
   // Reset Confirmation State
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -235,29 +235,49 @@ const App: React.FC = () => {
   };
 
   const handleExport = () => {
-    centerAllGlyphs();
-    const safeName = getExportName().replace(/[^a-z0-9]/gi, '_');
-    // Using default options for regular font, ignore preview letterSpacing (pass 0)
-    const fontBuffer = generateFont(safeName, fontMap, 0);
-    downloadFile(fontBuffer, `${safeName}.ttf`, 'font/ttf');
-    setIsExportModalOpen(false);
+    setExportingState('TTF');
+    // Use timeout to allow UI to render loader before heavy process
+    setTimeout(() => {
+        try {
+            centerAllGlyphs();
+            const safeName = getExportName().replace(/[^a-z0-9]/gi, '_');
+            // Using default options for regular font, ignore preview letterSpacing (pass 0)
+            const fontBuffer = generateFont(safeName, fontMap, 0);
+            downloadFile(fontBuffer, `${safeName}.ttf`, 'font/ttf');
+            setIsExportModalOpen(false);
+        } catch (error) {
+            console.error('Export failed', error);
+        } finally {
+            setExportingState('IDLE');
+        }
+    }, 50);
   };
 
-  const handleExportFamily = async () => {
-     centerAllGlyphs();
-     const safeName = getExportName().replace(/[^a-z0-9]/gi, '_');
-     // Ignore preview letterSpacing (pass 0)
-     const zipBlob = await generateFontFamilyZip(safeName, fontMap, 0);
-     
-     const url = URL.createObjectURL(zipBlob);
-     const a = document.createElement('a');
-     a.href = url;
-     a.download = `${safeName}_Family.zip`;
-     document.body.appendChild(a);
-     a.click();
-     document.body.removeChild(a);
-     URL.revokeObjectURL(url);
-     setIsExportModalOpen(false);
+  const handleExportFamily = () => {
+     setExportingState('ZIP');
+     // Use timeout to allow UI to render loader before heavy process
+     setTimeout(async () => {
+         try {
+             centerAllGlyphs();
+             const safeName = getExportName().replace(/[^a-z0-9]/gi, '_');
+             // Ignore preview letterSpacing (pass 0)
+             const zipBlob = await generateFontFamilyZip(safeName, fontMap, 0);
+             
+             const url = URL.createObjectURL(zipBlob);
+             const a = document.createElement('a');
+             a.href = url;
+             a.download = `${safeName}_Family.zip`;
+             document.body.appendChild(a);
+             a.click();
+             document.body.removeChild(a);
+             URL.revokeObjectURL(url);
+             setIsExportModalOpen(false);
+         } catch (error) {
+             console.error('Export family failed', error);
+         } finally {
+             setExportingState('IDLE');
+         }
+     }, 50);
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -584,17 +604,35 @@ const App: React.FC = () => {
                   <div className="flex flex-col gap-2.5 w-full">
                       <button 
                         onClick={handleExport}
-                        className="w-full bg-black dark:bg-white text-white dark:text-black h-[40px] rounded-[30px] text-[13px] font-medium hover:bg-neutral-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                        disabled={exportingState !== 'IDLE'}
+                        className="w-full bg-black dark:bg-white text-white dark:text-black h-[40px] rounded-[30px] text-[13px] font-medium hover:bg-neutral-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                       >
-                          Download .ttf
+                          {exportingState === 'TTF' ? (
+                            <>
+                                <Loader2 size={16} className="animate-spin" />
+                                <span>Exporting...</span>
+                            </>
+                          ) : (
+                            <>Download .ttf</>
+                          )}
                       </button>
 
                       <button 
                         onClick={handleExportFamily}
-                        className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-black dark:text-white h-[40px] rounded-[30px] text-[13px] font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+                        disabled={exportingState !== 'IDLE'}
+                        className="w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-black dark:text-white h-[40px] rounded-[30px] text-[13px] font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                       >
-                          <FileArchive size={14} />
-                          Download Family (.zip)
+                          {exportingState === 'ZIP' ? (
+                            <>
+                                <Loader2 size={16} className="animate-spin" />
+                                <span>Exporting...</span>
+                            </>
+                          ) : (
+                            <>
+                                <FileArchive size={14} />
+                                Download Family (.zip)
+                            </>
+                          )}
                       </button>
                   </div>
               </div>
