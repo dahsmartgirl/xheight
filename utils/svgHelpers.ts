@@ -8,42 +8,27 @@ declare const paper: any;
 // --- STROKE PROCESSING HELPERS ---
 
 // Smooths points using a simple moving average algorithm to reduce jitter
-// Also simplifies points that are too close to each other to reduce complexity
 export const smoothStrokes = (strokes: Stroke[]): Stroke[] => {
   return strokes.map(stroke => {
     const points = stroke.points;
     if (points.length < 3) return stroke;
 
-    // 1. Moving Average Smoothing
-    const smoothedPoints: Point[] = [points[0]];
+    const newPoints: Point[] = [points[0]];
+    
+    // Apply 3-point moving average
     for (let i = 1; i < points.length - 1; i++) {
         const p0 = points[i-1];
         const p1 = points[i];
         const p2 = points[i+1];
         
-        smoothedPoints.push({
+        newPoints.push({
             x: (p0.x + p1.x + p2.x) / 3,
             y: (p0.y + p1.y + p2.y) / 3
         });
     }
-    smoothedPoints.push(points[points.length-1]);
-
-    // 2. Simplification (Distance Filter)
-    // Filter out points that are closer than 2 units to the previous point
-    // This drastically reduces boolean operation overhead for slow/dense strokes
-    const simplifiedPoints: Point[] = [smoothedPoints[0]];
-    for (let i = 1; i < smoothedPoints.length; i++) {
-        const last = simplifiedPoints[simplifiedPoints.length - 1];
-        const current = smoothedPoints[i];
-        const distSq = Math.pow(current.x - last.x, 2) + Math.pow(current.y - last.y, 2);
-        
-        // Keep point if distance > 2px or it's the very last point
-        if (distSq > 4 || i === smoothedPoints.length - 1) {
-            simplifiedPoints.push(current);
-        }
-    }
+    newPoints.push(points[points.length-1]);
     
-    return { ...stroke, points: simplifiedPoints };
+    return { ...stroke, points: newPoints };
   });
 };
 
@@ -232,86 +217,75 @@ export const normalizeStrokes = (strokes: Stroke[], char: string, avgScale: numb
 
 // --- FONT GENERATION HELPERS ---
 
+const getAngle = (p1: Point, p2: Point) => Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+// Generates the points for the outline of a stroke (without creating an opentype Path yet).
+// This allows us to feed the geometry into Paper.js for boolean union.
+const getStrokeOutlinePoints = (stroke: Stroke, scale: number, ascender: number, thickness: number, slant: number, dx: number = 0, dy: number = 0): {x: number, y: number}[] => {
+    const points = stroke.points;
+    if (points.length === 0) return [];
+
+    const transform = (pt: Point, offX: number, offY: number) => {
+        const x_scaled = pt.x * scale;
+        const y_scaled = pt.y * scale; 
+        
+        const x_local = x_scaled + offX;
+        const y_local = y_scaled - offY;
+        
+        const y_otf = ascender - y_local + dy;
+        const x_final = x_local + (y_otf * slant) + dx;
+        
+        return { x: x_final, y: y_otf };
+    };
+    
+    // Dot Case
+    if (points.length === 1 || (points.length === 2 && Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) < 2)) {
+        const p = points[0];
+        const r = thickness * scale * 0.8; 
+        const c = transform(p, 0, 0);
+        return [
+            { x: c.x, y: c.y - r },
+            { x: c.x + r, y: c.y },
+            { x: c.x, y: c.y + r },
+            { x: c.x - r, y: c.y }
+        ];
+    }
+
+    // Stroke Case
+    const leftSide: {x: number, y: number}[] = [];
+    const rightSide: {x: number, y: number}[] = [];
+    const halfWidth = (thickness * scale) / 2;
+
+    for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const angle = getAngle(p1, p2);
+        const offsetX = halfWidth * Math.sin(angle);
+        const offsetY = halfWidth * Math.cos(angle);
+
+        leftSide.push(transform(p1, offsetX, offsetY));
+        rightSide.push(transform(p1, -offsetX, -offsetY));
+        
+        if (i === points.length - 2) {
+             leftSide.push(transform(p2, offsetX, offsetY));
+             rightSide.push(transform(p2, -offsetX, -offsetY));
+        }
+    }
+
+    // Combine left (forward) and right (backward) to form loop
+    const outlinePoints = [...leftSide];
+    for (let i = rightSide.length - 1; i >= 0; i--) {
+        outlinePoints.push(rightSide[i]);
+    }
+
+    return outlinePoints;
+};
+
 interface FontOptions {
     thickness?: number;
     slant?: number;
     styleName?: string;
 }
-
-// Helper to perform Divide and Conquer Boolean Union
-// This drastically improves performance from O(N^2) to O(N log N)
-const recursiveUnite = (shapes: any[]): any => {
-    if (shapes.length === 0) return null;
-    if (shapes.length === 1) return shapes[0];
-
-    const mid = Math.floor(shapes.length / 2);
-    const left = recursiveUnite(shapes.slice(0, mid));
-    const right = recursiveUnite(shapes.slice(mid));
-
-    if (left && right) {
-        // insert: false prevents adding to the scene graph unnecessarily
-        const result = left.unite(right, { insert: false });
-        left.remove();
-        right.remove();
-        return result;
-    }
-    return left || right;
-};
-
-// Robustly constructs the shape of a stroke using Path.expand
-// This is significantly faster and more stable for bold fonts than manual construction
-const createStrokeShape = (stroke: Stroke, thickness: number, scope: any): any => {
-    const points = stroke.points;
-    if (points.length === 0) return null;
-
-    // Handle single point (dot)
-    if (points.length === 1) {
-         return new scope.Path.Circle({
-            center: new scope.Point(points[0].x, points[0].y),
-            radius: thickness / 2,
-            insert: false
-        });
-    }
-
-    // Create a path from the stroke points
-    const path = new scope.Path({
-        segments: points.map(p => [p.x, p.y]),
-        strokeColor: 'black',
-        strokeWidth: thickness,
-        strokeCap: 'round',
-        strokeJoin: 'round',
-        insert: false
-    });
-
-    try {
-        // Expand the path to get the outline geometry
-        // This handles self-intersections and thick strokes much better than boolean unions
-        const expanded = path.expand({
-            stroke: true,
-            insert: false
-        });
-        
-        path.remove(); // Clean up original path
-
-        // If expansion returns a Group (e.g. for certain complex topologies),
-        // we flatten it by uniting its children into a single item.
-        if (expanded.className === 'Group') {
-             const children = expanded.removeChildren();
-             if (children.length === 0) return null;
-             
-             // recursiveUnite consumes items (removes them from parents usually),
-             // which is what we want for these temp items
-             const united = recursiveUnite(children);
-             expanded.remove();
-             return united;
-        }
-
-        return expanded;
-    } catch (e) {
-        console.warn("Path expansion failed, falling back to simple path", e);
-        return null;
-    }
-};
 
 export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: number, options: FontOptions = {}): ArrayBuffer => {
     const unitsPerEm = 1000;
@@ -319,7 +293,7 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
     const descender = -200;
     const { thickness = 50, slant = 0, styleName = 'Regular' } = options;
 
-    // Initialize Paper.js Scope
+    // Initialize Paper.js Scope for Boolean Operations
     const scope = new paper.PaperScope();
     scope.setup(new paper.Size(1000, 1000));
 
@@ -357,93 +331,68 @@ export const generateFont = (fontName: string, fontMap: FontMap, letterSpacing: 
 
         const { strokes: normalizedStrokes, advanceWidth } = normalizeStrokes(data.strokes, char, avgScale);
 
-        // Collect all stroke shapes
-        const strokeShapes: any[] = [];
+        // Perform Boolean Union of all stroke outlines to prevent self-intersection artifacts
+        let unifiedPath: any = null;
 
         normalizedStrokes.forEach(stroke => {
-            const shape = createStrokeShape(stroke, thickness, scope);
-            if (shape) strokeShapes.push(shape);
+            const outlinePoints = getStrokeOutlinePoints(stroke, 1, ascender, thickness, slant, 0, 0);
+            if (outlinePoints.length === 0) return;
+
+            // Create Paper.js Path from points
+            const p = new scope.Path(outlinePoints.map(pt => new scope.Point(pt.x, pt.y)));
+            p.closed = true;
+            
+            // Unite with existing geometry
+            if (!unifiedPath) {
+                unifiedPath = p;
+            } else {
+                const result = unifiedPath.unite(p);
+                unifiedPath.remove(); // Remove old paths from project
+                p.remove();
+                unifiedPath = result;
+            }
         });
 
-        // Unite all strokes into one glyph
-        const glyphUnion = recursiveUnite(strokeShapes);
-
-        // 2. Convert the clean unified shape to Opentype Path
+        // Convert Paper.js Path back to Opentype Path
         const glyphPath = new opentype.Path();
 
-        if (glyphUnion) {
-            // Handle CompoundPaths (multiple disconnected islands) or simple Paths
-            // For boolean results, Paper often returns a CompoundPath even for simple shapes
-            let paths: any[] = [];
-            
-            if (glyphUnion.className === 'CompoundPath') {
-                paths = glyphUnion.children;
-            } else {
-                paths = [glyphUnion];
-            }
+        if (unifiedPath) {
+            // unifiedPath can be a Path or CompoundPath
+            const paths = unifiedPath.className === 'CompoundPath' ? unifiedPath.children : [unifiedPath];
 
             paths.forEach((p: any) => {
                 const segments = p.segments;
                 if (!segments || segments.length === 0) return;
 
-                // Transform to Font Coordinate System
-                const transform = (px: number, py: number) => {
-                    const y_font = ascender - py;
-                    const x_font = px + (y_font * slant);
-                    return { x: x_font, y: y_font };
-                };
-
-                const startPt = segments[0].point;
-                const start = transform(startPt.x, startPt.y);
+                // Paper.js winding is typically CCW for solid shapes, while TrueType expects CW.
+                // We verify area or just reverse to ensure CW for outer shells if needed.
+                // Usually simply reversing Paper's output works well for TTF export.
+                const isCCW = p.area > 0; // Check orientation if necessary, but reversing is safe for standard TTF tools
+                
+                // Start Loop
+                const start = segments[0].point;
                 glyphPath.moveTo(start.x, start.y);
 
-                // Reconstruct path with curves if handled by paper (unite returns bezier curves)
-                for (let i = 1; i < segments.length; i++) {
-                    const segment = segments[i];
-                    const pt = segment.point;
-                    const handleIn = segment.handleIn;
-                    
-                    // Previous segment's handleOut
-                    const prevSegment = segments[i-1];
-                    const handleOut = prevSegment.handleOut;
-
-                    const tPt = transform(pt.x, pt.y);
-
-                    // Check if it's a straight line or curve
-                    if ((!handleOut || handleOut.isZero()) && (!handleIn || handleIn.isZero())) {
-                        glyphPath.lineTo(tPt.x, tPt.y);
-                    } else {
-                        // Cubic Bezier
-                        const p1 = prevSegment.point;
-                        const c1 = { x: p1.x + handleOut.x, y: p1.y + handleOut.y };
-                        const c2 = { x: pt.x + handleIn.x, y: pt.y + handleIn.y };
-                        
-                        const tC1 = transform(c1.x, c1.y);
-                        const tC2 = transform(c2.x, c2.y);
-                        
-                        glyphPath.bezierCurveTo(tC1.x, tC1.y, tC2.x, tC2.y, tPt.x, tPt.y);
-                    }
-                }
-                
-                // Close the loop back to start
-                const firstSegment = segments[0];
-                const lastSegment = segments[segments.length - 1];
-                const handleOut = lastSegment.handleOut;
-                const handleIn = firstSegment.handleIn;
-                
-                if ((!handleOut || handleOut.isZero()) && (!handleIn || handleIn.isZero())) {
-                    glyphPath.close();
+                // For simple polygonal outlines (which we have), just iterating points is enough.
+                // We reverse the loop iteration to flip winding from CCW to CW
+                if (isCCW) {
+                     for (let i = segments.length - 1; i >= 0; i--) {
+                         const pt = segments[i].point;
+                         if (i === segments.length - 1) {
+                             glyphPath.moveTo(pt.x, pt.y);
+                         } else {
+                             glyphPath.lineTo(pt.x, pt.y);
+                         }
+                     }
                 } else {
-                     const p1 = lastSegment.point;
-                     const c1 = { x: p1.x + handleOut.x, y: p1.y + handleOut.y };
-                     const c2 = { x: firstSegment.point.x + handleIn.x, y: firstSegment.point.y + handleIn.y };
-                     const tC1 = transform(c1.x, c1.y);
-                     const tC2 = transform(c2.x, c2.y);
-                     const tEnd = transform(firstSegment.point.x, firstSegment.point.y);
-                     glyphPath.bezierCurveTo(tC1.x, tC1.y, tC2.x, tC2.y, tEnd.x, tEnd.y);
+                     for (let i = 1; i < segments.length; i++) {
+                        const pt = segments[i].point;
+                        glyphPath.lineTo(pt.x, pt.y);
+                     }
                 }
+                glyphPath.close();
             });
-            glyphUnion.remove();
+            unifiedPath.remove();
         }
 
         const finalAdvance = Math.round(advanceWidth + (letterSpacing * 10));
